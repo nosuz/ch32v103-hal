@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-use riscv as _; // for busy wait riscv::asm::nop()
 // provide implementation for critical-section
 use riscv_rt::entry;
 use panic_halt as _;
@@ -10,6 +9,7 @@ use ch32v1::ch32v103; // PAC for CH32V103
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::rcc::*;
+use ch32v1::ch32v103::TIM1;
 
 #[entry]
 fn main() -> ! {
@@ -37,7 +37,11 @@ fn main() -> ! {
 
     // HSI 8MHz
     // 4 opcodes to do a nop sleep here
-    let wait_count = 8_000_000 / 4;
+    // let wait_count = 8_000_000 / 4;
+    unsafe {
+        (*TIM1::ptr()).psc.write(|w| w.bits(15)); // 1us * 2^16 * 15 = 1s
+        (*TIM1::ptr()).ctlr1.modify(|_, w| w.cen().set_bit());
+    }
     loop {
         // gpiob.outdr.modify(|_, w| w.odr0().set_bit());
         led1.set_high().unwrap();
@@ -46,10 +50,9 @@ fn main() -> ! {
 
         led_r1.set_high().unwrap();
         led_r2.set_low().unwrap();
-        for _ in 0..wait_count {
-            unsafe {
-                riscv::asm::nop();
-            }
+
+        unsafe {
+            while (*TIM1::ptr()).cnt.read().cnt() != 0 {}
         }
 
         // gpiob.outdr.modify(|_, w| w.odr0().clear_bit());
@@ -59,10 +62,8 @@ fn main() -> ! {
 
         led_r1.set_low().unwrap();
         led_r2.set_high().unwrap();
-        for _ in 0..wait_count {
-            unsafe {
-                riscv::asm::nop();
-            }
+        unsafe {
+            while (*TIM1::ptr()).cnt.read().cnt() != 0 {}
         }
     }
 }
