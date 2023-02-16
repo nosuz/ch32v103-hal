@@ -20,10 +20,10 @@ impl RccExt for RCC {
     type Rcc = Rcc;
 
     fn constrain(self) -> Rcc {
-        unsafe {
-            (*RCC::ptr()).cfgr0.modify(|r, w| w.bits((r.bits() & !(0b1111 << 4)) | (0b1010 << 4))); // HPRE DIV8  8MHz / 8 = 1us /cycle
-            (*RCC::ptr()).apb2pcenr.modify(|_, w| w.tim1en().set_bit());
-        }
+        // unsafe {
+        //     (*RCC::ptr()).cfgr0.modify(|r, w| w.bits((r.bits() & !(0b1111 << 4)) | (0b1010 << 4))); // HPRE DIV8  8MHz / 8 = 1us /cycle
+        //     (*RCC::ptr()).apb2pcenr.modify(|_, w| w.tim1en().set_bit());
+        // }
 
         Rcc {
             ahb: AHB {},
