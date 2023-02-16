@@ -8,18 +8,11 @@ use panic_halt as _;
 use ch32v1::ch32v103; // PAC for CH32V103
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::gpio::*;
-use ch32v103_hal::rcc::*;
 use ch32v103_hal::systick::SysTick;
 
 #[entry]
 fn main() -> ! {
     let peripherals = ch32v103::Peripherals::take().unwrap();
-    let rcc = peripherals.RCC.constrain();
-
-    // Waht is the good manner in Rust?
-    rcc.apb2.enable_gpioa(); // Enable GPIOA
-    rcc.apb2.enable_gpiob(); // Enable GPIOB
-    // rcc.apb2pcenr.modify(|_, w| w.iopaen().set_bit());
 
     let gpioa = peripherals.GPIOA.split();
     let mut led_r1 = gpioa.pa4.into_push_pull_output();

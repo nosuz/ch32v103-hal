@@ -29,6 +29,7 @@ macro_rules! gpio {
     (
         $GPIOX:ident,
         $gpiox:ident,
+        $x:expr,
         [$($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty, $CFGR:ident),)+]
     ) => {
         // define GPIOX
@@ -36,6 +37,7 @@ macro_rules! gpio {
             use core::marker::PhantomData;
             use core::convert::Infallible;
             use embedded_hal::digital::v2::OutputPin;
+            use ch32v1::ch32v103::RCC;
             use ch32v1::ch32v103::$GPIOX;
 
             // Use struct defined in outer scope
@@ -56,6 +58,11 @@ macro_rules! gpio {
                 type Parts = Parts;
 
                 fn split(self) -> Parts {
+                    unsafe {
+                        // (*RCC::ptr()).apb2pcenr.modify(|_, w| w.iopaen().set_bit());
+                        (*RCC::ptr()).apb2pcenr.modify(|r, w| w.bits((r.bits() | (0b1 << ($x + 2)))));
+                    }
+
                     Parts {
                         $(
                             $pxi: $PXi { _mode: PhantomData },
@@ -145,7 +152,7 @@ macro_rules! gpio {
     };
 }
 
-gpio!(GPIOA, gpioa, [
+gpio!(GPIOA, gpioa, 0, [
     PA0: (pa0, 0, Input<Floating>, cfglr),
     PA1: (pa1, 1, Input<Floating>, cfglr),
     PA2: (pa2, 2, Input<Floating>, cfglr),
@@ -164,7 +171,7 @@ gpio!(GPIOA, gpioa, [
     PA15: (pa15, 15, Input<PullUp>, cfghr),
 ]);
 
-gpio!(GPIOB, gpiob, [
+gpio!(GPIOB, gpiob, 1, [
     PB0: (pb0, 0, Input<Floating>, cfglr),
     PB1: (pb1, 1, Input<Floating>, cfglr),
     PB2: (pb2, 2, Input<Floating>, cfglr),
