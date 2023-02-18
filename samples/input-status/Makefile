@@ -1,11 +1,7 @@
 PKG_NAME=ch32v103_hal_input
 BIN_NAME=firmware.bin
 
-all: build
-
-build:
-	cargo build && \
-	riscv64-unknown-elf-objcopy -O binary target/riscv32imac-unknown-none-elf/debug/${PKG_NAME} ${BIN_NAME}
+all: release
 
 release:
 	cargo build --release && \
