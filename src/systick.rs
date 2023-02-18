@@ -9,7 +9,7 @@ pub struct SysTick {
 }
 
 impl SysTick {
-    pub fn new() -> SysTick {
+    pub fn new() -> Self {
         const STK_BASE: u32 = 0xe000_f000;
 
         SysTick {
