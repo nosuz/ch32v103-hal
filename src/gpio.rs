@@ -12,6 +12,7 @@ pub struct Input<MODE> {
     _mode: PhantomData<MODE>,
 }
 // Modes for Input
+pub struct Analog;
 pub struct Floating;
 pub struct PullDown;
 pub struct PullUp;
@@ -36,14 +37,15 @@ macro_rules! gpio {
         pub mod $gpiox {
             use core::marker::PhantomData;
             use core::convert::Infallible;
-            use embedded_hal::digital::v2::OutputPin;
+            use embedded_hal::digital::v2::{OutputPin, InputPin};
             use ch32v1::ch32v103::RCC;
             use ch32v1::ch32v103::$GPIOX;
 
             // Use struct defined in outer scope
             use super::{
-                Floating, GpioExt, Input, OpenDrain, Output,
-                PullDown, PullUp, PushPull,
+                GpioExt,
+                Input, Analog, Floating, PullDown, PullUp,
+                Output, PushPull, OpenDrain,
             };
 
             pub struct Parts {
@@ -78,15 +80,73 @@ macro_rules! gpio {
 
                 // Impliment fn to set pins mode
                 impl<MODE> $PXi<MODE> {
-                    pub fn into_floating_input(self) -> $PXi<Input<Floating>> {
+                    pub fn into_analog_input(self) -> $PXi<Input<Analog>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Input mode, maximum speed: 50MHz;
+                            let mode = 0b00;
+                            // Analog input mode
+                            let cnf = 0b00;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b01).mode0().bits(0b00));
+                        }
+
                         $PXi { _mode: PhantomData }
                     }
 
-                    pub fn into_pull_down_input(self) -> $PXi<Input<PullDown>> {
+                    pub fn into_floating_input(self) -> $PXi<Input<Floating>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Input mode, maximum speed: 50MHz;
+                            let mode = 0b00;
+                            // Floating input mode
+                            let cnf = 0b01;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b01).mode0().bits(0b00));
+                        }
+
                         $PXi { _mode: PhantomData }
                     }
 
                     pub fn into_pull_up_input(self) -> $PXi<Input<PullUp>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Input mode, maximum speed: 50MHz;
+                            let mode = 0b00;
+                            // Pull-up and pull-down input mode
+                            let cnf = 0b10;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b10).mode0().bits(0b00));
+
+                            // Set OUTDR for pull-up.
+                            (*$GPIOX::ptr()).bshr.write(|w| w.bits(0b1 << $i));
+                        }
+
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_pull_down_input(self) -> $PXi<Input<PullDown>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Input mode, maximum speed: 50MHz;
+                            let mode = 0b00;
+                            // Pull-up and pull-down input mode
+                            let cnf = 0b10;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b10).mode0().bits(0b00));
+
+                            // Clear OUTDR for pull-down.
+                            (*$GPIOX::ptr()).bcr.write(|w| w.bits(0b1 << $i));
+                        }
+
                         $PXi { _mode: PhantomData }
                     }
 
@@ -134,6 +194,22 @@ macro_rules! gpio {
                 // }
 
                 // Impliment embedded-hal gpio
+                impl<MODE> InputPin for $PXi<Input<MODE>> {
+                    type Error = Infallible;
+
+                    fn is_high(&self) -> Result<bool, Self::Error> {
+                        unsafe {
+                            Ok((*$GPIOX::ptr()).indr.read().bits() & (0b1 << $i) > 0)
+                        }
+                    }
+
+                    fn is_low(&self) -> Result<bool, Self::Error> {
+                        unsafe {
+                            Ok((*$GPIOX::ptr()).indr.read().bits() & (0b1 << $i) == 0)
+                        }
+                    }
+                }
+
                 impl<MODE> OutputPin for $PXi<Output<MODE>> {
                     type Error = Infallible;
 
