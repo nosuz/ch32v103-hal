@@ -91,6 +91,18 @@ macro_rules! gpio {
                     }
 
                     pub fn into_open_drain_output(self) -> $PXi<Output<OpenDrain>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Output mode, maximum speed: 50MHz;
+                            let mode = 0b11;
+                            // General open-drain output mode
+                            let cnf = 0b01;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b01).mode0().bits(0b11));
+                        }
+
                         $PXi { _mode: PhantomData }
                     }
 
