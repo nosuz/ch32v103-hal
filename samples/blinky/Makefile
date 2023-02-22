@@ -9,3 +9,6 @@ release:
 
 flash:
 	wchisp flash ${BIN_NAME}
+
+clean:
+	rm -r target ${BIN_NAME}

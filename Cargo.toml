@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 embedded-hal = {version = "0.2.7", features = ["unproven"]}
+nb = "1.0.0"
 
 [dependencies.ch32v1]
 version = "0.1.5"

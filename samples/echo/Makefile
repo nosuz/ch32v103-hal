@@ -1,4 +1,4 @@
-PKG_NAME=ch32v103_hal_input
+PKG_NAME=ch32v103_hal_echo
 BIN_NAME=firmware.bin
 
 all: release
