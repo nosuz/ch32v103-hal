@@ -1,3 +1,5 @@
+This is studying Rust embedded-hal for WCH CH32V103 project.
+
 ## Based Hal sample
 
 [japaric/stm32f30x-hal](https://github.com/japaric/stm32f30x-hal)
