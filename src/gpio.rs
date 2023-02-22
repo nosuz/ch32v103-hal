@@ -21,6 +21,10 @@ pub struct PullUp;
 pub struct Output<MODE> {
     _mode: PhantomData<MODE>,
 }
+// Multiplex Output Mode
+pub struct AltOutput<MODE> {
+    _mode: PhantomData<MODE>,
+}
 // Modes for Output
 pub struct PushPull;
 pub struct OpenDrain;
@@ -45,7 +49,7 @@ macro_rules! gpio {
             use super::{
                 GpioExt,
                 Input, Analog, Floating, PullDown, PullUp,
-                Output, PushPull, OpenDrain,
+                Output, AltOutput, PushPull, OpenDrain,
             };
 
             pub struct Parts {
@@ -177,6 +181,38 @@ macro_rules! gpio {
                             (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
                             // Using PAC
                             // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b00).mode0().bits(0b11));
+                        }
+
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_multiplex_push_pull_output(self) -> $PXi<AltOutput<PushPull>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Output mode, maximum speed: 50MHz;
+                            let mode = 0b11;
+                            // Multiplex push-pull output mode
+                            let cnf = 0b10;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b00).mode0().bits(0b11));
+                        }
+
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_multiplex_open_drain_output(self) -> $PXi<AltOutput<OpenDrain>> {
+                        unsafe {
+                            let offset = 4 * ($i & 0b111);
+                            // Output mode, maximum speed: 50MHz;
+                            let mode = 0b11;
+                            // Multiplex open-drain output mode
+                            let cnf = 0b11;
+                            // Reset target bits, and set the target mode and cnf bits.
+                            (*$GPIOX::ptr()).$CFGR.modify(|r, w| w.bits((r.bits() & !(0b1111 << offset) | (mode << offset) | (cnf << (offset + 2)))));
+                            // Using PAC
+                            // (*$GPIOX::ptr()).cfglr.modify(|_, w| w.cnf0().bits(0b01).mode0().bits(0b11));
                         }
 
                         $PXi { _mode: PhantomData }
