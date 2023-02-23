@@ -1,6 +1,8 @@
 // SysTick (STK) register strucure is not same as CH32V20x and CH32V30x
+use crate::rcc::*;
 
 pub struct SysTick {
+    hclk: u32,
     ctlr: u32,
     cntl: u32,
     cnth: u32,
@@ -9,10 +11,11 @@ pub struct SysTick {
 }
 
 impl SysTick {
-    pub fn new() -> Self {
+    pub fn new(clocks: &Clocks) -> Self {
         const STK_BASE: u32 = 0xe000_f000;
 
         SysTick {
+            hclk: clocks.hclk().0,
             ctlr: STK_BASE,
             cntl: STK_BASE + 0x4,
             cnth: STK_BASE + 0x8,
@@ -25,7 +28,9 @@ impl SysTick {
         self.stop_count();
         // self.reset_counter();
         // HSI is 8MHz and counting Div 8. Thus 1 count is 1us.
-        self.set_counter(0_u32 - wait_us);
+        // self.hclk / 1_000_000 / 8// cycle /us
+        let count = (self.hclk / 1_000_000 / 8) * wait_us; // cycle
+        self.set_counter(0_u32 - count);
 
         self.start_count();
         // busy wait until over 2^32

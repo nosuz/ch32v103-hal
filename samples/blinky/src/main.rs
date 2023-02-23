@@ -7,12 +7,21 @@ use panic_halt as _;
 
 use ch32v1::ch32v103; // PAC for CH32V103
 use ch32v103_hal::prelude::*;
+use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::systick::SysTick;
 
 #[entry]
 fn main() -> ! {
     let peripherals = ch32v103::Peripherals::take().unwrap();
+    let rcc = peripherals.RCC.constrain();
+
+    // let clocks = rcc.cfgr.freeze();
+    // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::UseHsi).freeze();
+    let clocks = rcc.cfgr
+        .use_pll((64).mhz(), PllClkSrc::UseHsi)
+        .hclk_prescale(HclkPreScale::Div2)
+        .freeze();
 
     let gpioa = peripherals.GPIOA.split();
     let mut led_r1 = gpioa.pa4.into_push_pull_output();
@@ -28,7 +37,7 @@ fn main() -> ! {
     //     gpiob.cfglr.modify(|_, w| w.cnf0().bits(0b00).mode0().bits(0b11))
     // };
 
-    let mut systick = SysTick::new();
+    let mut systick = SysTick::new(&clocks);
     loop {
         // gpiob.outdr.modify(|_, w| w.odr0().set_bit());
         led1.set_high().unwrap();

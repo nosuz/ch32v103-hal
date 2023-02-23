@@ -6,7 +6,7 @@ use core::fmt;
 
 use ch32v1::ch32v103::{ RCC, USART1 };
 use crate::time::*;
-// use crate::gpio::{ AltOutput, Input, PushPull, PullUp, Floating };
+use crate::rcc::*;
 use crate::gpio::*;
 use crate::gpio::gpioa::{ PA9, PA10 };
 
@@ -48,7 +48,9 @@ pub struct Serial<PINS> {
 
 impl<TX, RX> Serial<(TX, RX)> {
     // init USART
-    pub fn usart1(pins: (TX, RX), baud_rate: Bps) -> Self where TX: TxPin<USART1>, RX: RxPin<USART1> {
+    pub fn usart1(clocks: &Clocks, pins: (TX, RX), baud_rate: Bps) -> Self
+        where TX: TxPin<USART1>, RX: RxPin<USART1>
+    {
         // enable USART
         unsafe {
             // provide clock to USART1
@@ -59,7 +61,7 @@ impl<TX, RX> Serial<(TX, RX)> {
             // BRR = USARTDIV_M << 4 + USARTDIV_F = USARTDIV
             // 8 MHz / 9600 / 16 = 52.08
             // 8 MHz / 115200 / 16 = 4.34
-            let brr_div: u32 = (8_u32).mhz().0 / baud_rate.0;
+            let brr_div: u32 = clocks.pclk2().0 / baud_rate.0;
             (*USART1::ptr()).brr.write(|w| w.bits(brr_div));
 
             // disable harware flow control
