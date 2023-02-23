@@ -207,7 +207,7 @@ impl CFGR {
                     }
                     None => {
                         // pll_source must be set if UsePll.
-                        panic!("Why comes here");
+                        unreachable!();
                     }
                 }
 
