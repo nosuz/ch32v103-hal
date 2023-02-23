@@ -152,7 +152,10 @@ impl<T> SerialWriter<T> where T: embedded_hal::serial::Write<u8> {
 impl<T> fmt::Write for SerialWriter<T> where T: embedded_hal::serial::Write<u8> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for b in s.bytes() {
-            nb::block!(self.serial.write(b)); //.unwrap();
+            match nb::block!(self.serial.write(b)) {
+                Ok(_) => {}
+                Err(_) => {}
+            }
         }
         Ok(())
     }
