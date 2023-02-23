@@ -6,3 +6,4 @@ pub mod rcc;
 pub mod systick;
 pub mod serial;
 pub mod time;
+pub mod afio;

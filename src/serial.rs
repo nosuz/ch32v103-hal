@@ -9,6 +9,7 @@ use crate::time::*;
 use crate::rcc::*;
 use crate::gpio::*;
 use crate::gpio::gpioa::{ PA9, PA10 };
+use crate::gpio::gpiob::{ PB6, PB7 };
 
 // define serial error
 #[derive(Debug)]
@@ -40,6 +41,11 @@ pub unsafe trait RxPin<USART> {}
 unsafe impl TxPin<USART1> for PA9<AltOutput<PushPull>> {}
 unsafe impl RxPin<USART1> for PA10<Input<Floating>> {}
 unsafe impl RxPin<USART1> for PA10<Input<PullUp>> {}
+
+// Remap
+unsafe impl TxPin<USART1> for PB6<AltOutput<PushPull>> {}
+unsafe impl RxPin<USART1> for PB7<Input<Floating>> {}
+unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {}
 
 // Serial abstraction
 pub struct Serial<PINS> {

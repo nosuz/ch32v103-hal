@@ -11,12 +11,14 @@ use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
+use ch32v103_hal::afio::*;
 use ch32v103_hal::systick::SysTick;
 
 #[entry]
 fn main() -> ! {
     let peripherals = ch32v103::Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
+    peripherals.AFIO.remap_usart1();
 
     // let clocks = rcc.cfgr.freeze();
     let clocks = rcc.cfgr
@@ -24,15 +26,18 @@ fn main() -> ! {
         .hclk_prescale(HclkPreScale::Div4)
         .freeze();
 
-    let gpioa = peripherals.GPIOA.split();
-    let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
-    let pa10 = gpioa.pa10.into_floating_input();
+    // let gpioa = peripherals.GPIOA.split();
+    // let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
+    // let pa10 = gpioa.pa10.into_floating_input();
 
     let gpiob = peripherals.GPIOB.split();
     let mut led1 = gpiob.pb2.into_push_pull_output();
     let mut led2 = gpiob.pb15.into_push_pull_output();
+    // Use remapped ports
+    let pb6 = gpiob.pb6.into_multiplex_push_pull_output();
+    let pb7 = gpiob.pb7.into_floating_input();
 
-    let usart = Serial::usart1(&clocks, (pa9, pa10), (115200).bps());
+    let usart = Serial::usart1(&clocks, (pb6, pb7), (115200).bps());
     let (tx, _) = usart.split();
     let mut log = SerialWriter::new(tx);
 
