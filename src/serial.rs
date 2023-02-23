@@ -91,7 +91,7 @@ impl serial::Write<u8> for Tx<USART1> {
     fn write(&mut self, byte: u8) -> nb::Result<(), Self::Error> {
         unsafe {
             // check TX register is empty
-            if (*USART1::ptr()).statr.read().bits() & (0b1 << 7) > 0 {
+            if (*USART1::ptr()).statr.read().txe().bit_is_set() {
                 (*USART1::ptr()).datar.write(|w| w.bits(byte as u32));
                 Ok(())
             } else {
@@ -102,7 +102,7 @@ impl serial::Write<u8> for Tx<USART1> {
 
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
         unsafe {
-            if (*USART1::ptr()).statr.read().bits() & (0b1 << 6) > 0 {
+            if (*USART1::ptr()).statr.read().tc().bit_is_set() {
                 Ok(())
             } else {
                 Err(nb::Error::WouldBlock)
@@ -117,18 +117,18 @@ impl serial::Read<u8> for Rx<USART1> {
     fn read(&mut self) -> nb::Result<u8, Error> {
         unsafe {
             // read STATR
-            let statr = (*USART1::ptr()).statr.read().bits();
-            if statr & (0b1 << 5) > 0 {
+            let statr = (*USART1::ptr()).statr.read();
+            if statr.rxne().bit_is_set() {
                 Ok((*USART1::ptr()).datar.read().bits() as u8)
             } else {
                 Err(
-                    if statr & (0b1 << 3) > 0 {
+                    if statr.ore().bit_is_set() {
                         nb::Error::Other(Error::Overrun)
-                    } else if statr & (0b1 << 2) > 0 {
+                    } else if statr.ne().bit_is_set() {
                         nb::Error::Other(Error::Noise)
-                    } else if statr & (0b1 << 1) > 0 {
+                    } else if statr.fe().bit_is_set() {
                         nb::Error::Other(Error::Framing)
-                    } else if statr & (0b1 << 0) > 0 {
+                    } else if statr.pe().bit_is_set() {
                         nb::Error::Other(Error::Parity)
                     } else {
                         nb::Error::WouldBlock
