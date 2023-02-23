@@ -36,18 +36,19 @@ fn main() -> ! {
         let result = nb::block!(rx.read());
         match result {
             Ok(chr) => {
-                if chr == 0x0d {
-                    newline = true;
-                } else {
-                    newline = false;
+                match nb::block!(tx.write(chr)) {
+                    Ok(_) => {}
+                    Err(_) => {}
                 }
-                nb::block!(tx.write(chr)); //.unwrap();
 
-                if newline {
-                    nb::block!(tx.write(0x0a)); //.unwrap();
+                if chr == 0x0d {
+                    match nb::block!(tx.write(0x0a)) {
+                        Ok(_) => {}
+                        Err(_) => {}
+                    }
                 }
             }
-            Err(e) => {
+            Err(_) => {
                 // Ignore erro
             }
         }
