@@ -141,17 +141,17 @@ impl serial::Read<u8> for Rx<USART1> {
     }
 }
 
-pub struct SerialWriter<T> where T: embedded_hal::serial::Write<u8> {
+pub struct SerialWriter<T> where T: serial::Write<u8> {
     serial: T,
 }
 
-impl<T> SerialWriter<T> where T: embedded_hal::serial::Write<u8> {
+impl<T> SerialWriter<T> where T: serial::Write<u8> {
     pub fn new(serial: T) -> Self {
         SerialWriter { serial }
     }
 }
 
-impl<T> fmt::Write for SerialWriter<T> where T: embedded_hal::serial::Write<u8> {
+impl<T> fmt::Write for SerialWriter<T> where T: serial::Write<u8> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for b in s.bytes() {
             match nb::block!(self.serial.write(b)) {
