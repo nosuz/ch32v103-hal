@@ -13,7 +13,7 @@ panic-halt = "0.2.0"
 
 [dependencies.ch32v1]
 # path = "../ch32-rs/ch32v1"
-version = "0.1.5"
+version = "0.1.6"
 features = [
     "ch32v103",
     "critical-section", # without this, Peripherals::take() fails.
