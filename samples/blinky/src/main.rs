@@ -6,10 +6,11 @@ use riscv_rt::entry;
 use panic_halt as _;
 
 use ch32v1::ch32v103; // PAC for CH32V103
+use embedded_hal::prelude::*;
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
-use ch32v103_hal::systick::SysTick;
+use ch32v103_hal::blocking::delay::*;
 
 #[entry]
 fn main() -> ! {
@@ -37,7 +38,7 @@ fn main() -> ! {
     //     gpiob.cfglr.modify(|_, w| w.cnf0().bits(0b00).mode0().bits(0b11))
     // };
 
-    let mut systick = SysTick::new(&clocks);
+    let mut delay = Delay::new(&clocks);
     loop {
         // gpiob.outdr.modify(|_, w| w.odr0().set_bit());
         led1.set_high().unwrap();
@@ -46,7 +47,7 @@ fn main() -> ! {
 
         led_r1.set_high().unwrap();
         led_r2.set_low().unwrap();
-        systick.delay_ms(500);
+        delay.delay_ms(500);
 
         // gpiob.outdr.modify(|_, w| w.odr0().clear_bit());
         led1.set_low().unwrap();
@@ -55,6 +56,6 @@ fn main() -> ! {
 
         led_r1.set_low().unwrap();
         led_r2.set_high().unwrap();
-        systick.delay_s(1);
+        delay.delay_ms(1_000);
     }
 }
