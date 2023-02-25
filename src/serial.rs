@@ -4,7 +4,7 @@ use nb;
 use core::convert::Infallible;
 use core::fmt;
 
-use ch32v1::ch32v103::{ RCC, USART1 };
+use ch32v1::ch32v103::{ AFIO, RCC, USART1 };
 use crate::time::*;
 use crate::rcc::*;
 use crate::gpio::*;
@@ -35,18 +35,46 @@ pub struct Tx<USART> {
     _usart: PhantomData<USART>,
 }
 
-pub unsafe trait TxPin<USART> {}
-pub unsafe trait RxPin<USART> {}
+pub unsafe trait TxPin<USART> {
+    fn remap(&self) -> bool;
+}
+pub unsafe trait RxPin<USART> {
+    fn remap(&self) -> bool;
+}
 
 // why unsafe is required?
-unsafe impl TxPin<USART1> for PA9<AltOutput<PushPull>> {}
-unsafe impl RxPin<USART1> for PA10<Input<Floating>> {}
-unsafe impl RxPin<USART1> for PA10<Input<PullUp>> {}
+unsafe impl TxPin<USART1> for PA9<AltOutput<PushPull>> {
+    fn remap(&self) -> bool {
+        false
+    }
+}
+unsafe impl RxPin<USART1> for PA10<Input<Floating>> {
+    fn remap(&self) -> bool {
+        false
+    }
+}
+unsafe impl RxPin<USART1> for PA10<Input<PullUp>> {
+    fn remap(&self) -> bool {
+        false
+    }
+}
 
 // Remap
-unsafe impl TxPin<USART1> for PB6<AltOutput<PushPull>> {}
-unsafe impl RxPin<USART1> for PB7<Input<Floating>> {}
-unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {}
+unsafe impl TxPin<USART1> for PB6<AltOutput<PushPull>> {
+    fn remap(&self) -> bool {
+        true
+    }
+}
+unsafe impl RxPin<USART1> for PB7<Input<Floating>> {
+    fn remap(&self) -> bool {
+        true
+    }
+}
+unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {
+    fn remap(&self) -> bool {
+        true
+    }
+}
 
 // Serial abstraction
 pub struct Serial<PINS> {
@@ -60,6 +88,16 @@ impl<TX, RX> Serial<(TX, RX)> {
     {
         // enable USART
         unsafe {
+            // ToDo: Want to check while compiling.
+            // remap USART1
+            if pins.0.remap() & pins.1.remap() {
+                // clock is required before remap.
+                (*RCC::ptr()).apb2pcenr.modify(|_, w| w.afioen().set_bit());
+                (*AFIO::ptr()).pcfr.modify(|_, w| w.usart1rm().set_bit());
+            } else if pins.0.remap() | pins.1.remap() {
+                unreachable!();
+            }
+
             // provide clock to USART1
             (*RCC::ptr()).apb2pcenr.modify(|_, w| w.usart1en().set_bit());
 

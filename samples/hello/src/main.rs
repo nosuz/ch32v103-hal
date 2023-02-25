@@ -11,14 +11,12 @@ use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
-use ch32v103_hal::afio::*;
 use ch32v103_hal::systick::SysTick;
 
 #[entry]
 fn main() -> ! {
     let peripherals = ch32v103::Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
-    peripherals.AFIO.remap_usart1();
 
     // let clocks = rcc.cfgr.freeze();
     let clocks = rcc.cfgr
