@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "make blinky",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/blinky"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash blinky",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/blinky"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "make hello",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/hello"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash hello",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/hello"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "make echo",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/echo"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash echo",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/echo"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}
