@@ -29,7 +29,7 @@ impl SysTick {
         // self.reset_counter();
         // HSI is 8MHz and counting Div 8. Thus 1 count is 1us.
         // self.hclk / 1_000_000 / 8// cycle /us
-        let count = (self.hclk / 1_000_000 / 8) * wait_us; // cycle
+        let count = (wait_us * self.hclk) / 1_000_000 / 8; // cycle
         self.set_counter(0_u32 - count);
 
         self.start_count();
