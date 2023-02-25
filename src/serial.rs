@@ -29,12 +29,13 @@ pub enum Error {
 pub struct Rx<USART> {
     _usart: PhantomData<USART>,
 }
-pub unsafe trait TxPin<USART> {}
 
 // Serial transmitter
 pub struct Tx<USART> {
     _usart: PhantomData<USART>,
 }
+
+pub unsafe trait TxPin<USART> {}
 pub unsafe trait RxPin<USART> {}
 
 // why unsafe is required?
