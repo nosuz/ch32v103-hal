@@ -243,7 +243,7 @@ impl CFGR {
             Some(HclkPreScale::Div128) => (0b1101, sysclk / 128),
             Some(HclkPreScale::Div256) => (0b1110, sysclk / 256),
             Some(HclkPreScale::Div512) => (0b1111, sysclk / 512),
-            None => (0b0111, sysclk),
+            None => (0b0000, sysclk),
         };
         unsafe {
             (*RCC::ptr()).cfgr0.modify(|_, w| w.hpre().bits(hpre_bits));
@@ -255,7 +255,7 @@ impl CFGR {
             Some(PclkPreScale::Div4) => (0b101, hclk / 4),
             Some(PclkPreScale::Div8) => (0b110, hclk / 8),
             Some(PclkPreScale::Div16) => (0b111, hclk / 16),
-            None => (0b011, hclk),
+            None => (0b000, hclk),
         };
         unsafe {
             (*RCC::ptr()).cfgr0.modify(|_, w| w.ppre1().bits(ppre1_bits));
@@ -267,7 +267,7 @@ impl CFGR {
             Some(PclkPreScale::Div4) => (0b101, hclk / 4),
             Some(PclkPreScale::Div8) => (0b110, hclk / 8),
             Some(PclkPreScale::Div16) => (0b111, hclk / 16),
-            None => (0b011, hclk),
+            None => (0b000, hclk),
         };
         unsafe {
             (*RCC::ptr()).cfgr0.modify(|_, w| w.ppre2().bits(ppre2_bits));
