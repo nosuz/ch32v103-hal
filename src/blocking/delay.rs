@@ -75,8 +75,9 @@ impl delay::DelayUs<u32> for Delay {
         self.stop_count();
         // self.reset_counter();
         // HSI is 8MHz and counting Div 8. Thus 1 count is 1us.
-        // self.hclk / 1_000_000 / 8// cycle /us
-        let count = (us * self.hclk) / 1_000_000 / 8; // cycle
+        // self.hclk / 1_000_000 / 8 // cycles /us
+        // control calc order to avoid overflowing max value of u32.
+        let count = (us * (self.hclk / 1_000_000)) / 8; // cycles
         self.set_counter(0_u32 - count);
 
         self.start_count();
