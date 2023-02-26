@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
-use embedded_hal::serial;
+use embedded_hal::{ blocking, serial };
 use nb;
 use core::convert::Infallible;
 use core::fmt;
 
-use ch32v1::ch32v103::{ RCC, USART1 };
+use ch32v1::ch32v103::{ AFIO, RCC, USART1 };
 use crate::time::*;
 use crate::rcc::*;
 use crate::gpio::*;
@@ -29,23 +29,52 @@ pub enum Error {
 pub struct Rx<USART> {
     _usart: PhantomData<USART>,
 }
-pub unsafe trait TxPin<USART> {}
 
 // Serial transmitter
 pub struct Tx<USART> {
     _usart: PhantomData<USART>,
 }
-pub unsafe trait RxPin<USART> {}
+
+pub unsafe trait TxPin<USART> {
+    fn remap(&self) -> bool;
+}
+pub unsafe trait RxPin<USART> {
+    fn remap(&self) -> bool;
+}
 
 // why unsafe is required?
-unsafe impl TxPin<USART1> for PA9<AltOutput<PushPull>> {}
-unsafe impl RxPin<USART1> for PA10<Input<Floating>> {}
-unsafe impl RxPin<USART1> for PA10<Input<PullUp>> {}
+unsafe impl TxPin<USART1> for PA9<AltOutput<PushPull>> {
+    fn remap(&self) -> bool {
+        false
+    }
+}
+unsafe impl RxPin<USART1> for PA10<Input<Floating>> {
+    fn remap(&self) -> bool {
+        false
+    }
+}
+unsafe impl RxPin<USART1> for PA10<Input<PullUp>> {
+    fn remap(&self) -> bool {
+        false
+    }
+}
 
 // Remap
-unsafe impl TxPin<USART1> for PB6<AltOutput<PushPull>> {}
-unsafe impl RxPin<USART1> for PB7<Input<Floating>> {}
-unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {}
+unsafe impl TxPin<USART1> for PB6<AltOutput<PushPull>> {
+    fn remap(&self) -> bool {
+        true
+    }
+}
+unsafe impl RxPin<USART1> for PB7<Input<Floating>> {
+    fn remap(&self) -> bool {
+        true
+    }
+}
+unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {
+    fn remap(&self) -> bool {
+        true
+    }
+}
 
 // Serial abstraction
 pub struct Serial<PINS> {
@@ -59,6 +88,16 @@ impl<TX, RX> Serial<(TX, RX)> {
     {
         // enable USART
         unsafe {
+            // ToDo: Want to check while compiling.
+            // remap USART1
+            if pins.0.remap() & pins.1.remap() {
+                // clock is required before remap.
+                (*RCC::ptr()).apb2pcenr.modify(|_, w| w.afioen().set_bit());
+                (*AFIO::ptr()).pcfr.modify(|_, w| w.usart1rm().set_bit());
+            } else if pins.0.remap() | pins.1.remap() {
+                unreachable!();
+            }
+
             // provide clock to USART1
             (*RCC::ptr()).apb2pcenr.modify(|_, w| w.usart1en().set_bit());
 
@@ -168,3 +207,23 @@ impl<T> fmt::Write for SerialWriter<T> where T: serial::Write<u8> {
         Ok(())
     }
 }
+
+// Only implimenting this marker trait, methods in blocking::serial::Write are available.
+impl blocking::serial::write::Default<u8> for Tx<USART1> {}
+
+// impl blocking::serial::Write<u8> for Tx<USART1> {
+//     type Error = Infallible;
+
+//     fn bwrite_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
+//         Ok(())
+//     }
+
+//     fn bflush(&mut self) -> Result<(), Self::Error> {
+//         match nb::block!(self.flush()) {
+//             Ok(_) => {}
+//             Err(_) => {}
+//         }
+
+//         Ok(())
+//     }
+// }

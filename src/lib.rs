@@ -5,5 +5,4 @@ pub mod gpio;
 pub mod rcc;
 pub mod serial;
 pub mod time;
-pub mod afio;
 pub mod delay;

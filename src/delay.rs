@@ -1,6 +1,5 @@
 use embedded_hal::prelude::*;
 use embedded_hal::blocking::delay;
-use nb;
 
 // SysTick (STK) register strucure is not same as CH32V20x and CH32V30x
 use crate::rcc::*;

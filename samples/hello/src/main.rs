@@ -5,20 +5,19 @@
 use riscv_rt::entry;
 use panic_halt as _;
 
-use core::fmt::Write; // required for writeln!
+// use core::fmt::Write; // required for writeln!
 use ch32v1::ch32v103; // PAC for CH32V103
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
-use ch32v103_hal::afio::*;
 use ch32v103_hal::delay::*;
+use embedded_hal::blocking::serial::Write; // Required for bwrite_all
 
 #[entry]
 fn main() -> ! {
     let peripherals = ch32v103::Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
-    peripherals.AFIO.remap_usart1();
 
     // let clocks = rcc.cfgr.freeze();
     let clocks = rcc.cfgr
@@ -38,8 +37,8 @@ fn main() -> ! {
     let pb7 = gpiob.pb7.into_floating_input();
 
     let usart = Serial::usart1(&clocks, (pb6, pb7), (115200).bps());
-    let (tx, _) = usart.split();
-    let mut log = SerialWriter::new(tx);
+    let (mut tx, _) = usart.split();
+    // let mut log = SerialWriter::new(tx);
 
     led1.set_high().unwrap();
     led2.set_low().unwrap();
@@ -55,7 +54,11 @@ fn main() -> ! {
         //     nb::block!(tx.write(*c)); //.unwrap();
         // }
 
-        writeln!(&mut log, "Hello {}: {}", "world", count).unwrap();
+        // serial write with format sample.
+        // writeln!(&mut log, "Hello {}: {}", "world", count).unwrap();
+
+        // blocking::serial::write sample
+        tx.bwrite_all(b"Hello").unwrap();
 
         led1.set_high().unwrap();
         led2.set_low().unwrap();
