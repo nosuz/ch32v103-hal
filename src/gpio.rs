@@ -41,7 +41,7 @@ macro_rules! gpio {
         pub mod $gpiox {
             use core::marker::PhantomData;
             use core::convert::Infallible;
-            use embedded_hal::digital::v2::{OutputPin, InputPin};
+            use embedded_hal::digital::v2::{OutputPin, InputPin, StatefulOutputPin};
             use ch32v1::ch32v103::RCC;
             use ch32v1::ch32v103::$GPIOX;
 
@@ -269,6 +269,24 @@ macro_rules! gpio {
                             // (*$GPIOX::ptr()).bshr.write(|w| w.br7().set_bit());
                         }
                         Ok(())
+                    }
+                }
+
+                impl<MODE> StatefulOutputPin for $PXi<Output<MODE>> {
+                    // type Error = Infallible;
+
+                    // Return last set value, not acutual state.
+                    fn is_set_high(&self) -> Result<bool, Self::Error> {
+                        unsafe {
+                            // Ok((*$GPIOX::ptr()).indr.read().bits() & (0b1 << $i) > 0)
+                            Ok((*$GPIOX::ptr()).outdr.read().bits() & (0b1 << $i) > 0)
+                        }
+                    }
+                    fn is_set_low(&self) -> Result<bool, Self::Error> {
+                        unsafe {
+                            // Ok((*$GPIOX::ptr()).indr.read().bits() & (0b1 << $i) == 0)
+                            Ok((*$GPIOX::ptr()).outdr.read().bits() & (0b1 << $i) == 0)
+                        }
                     }
                 }
             )+

@@ -40,23 +40,38 @@ fn main() -> ! {
     // };
 
     let mut delay = Delay::new(&clocks);
+    led2.set_high().unwrap();
     loop {
         // gpiob.outdr.modify(|_, w| w.odr0().set_bit());
         led1.set_high().unwrap();
-        led2.set_low().unwrap();
         led3.set_state(PinState::Low).unwrap();
 
         led_r1.set_high().unwrap();
         led_r2.set_low().unwrap();
+
+        // toggle LED2
+        if led2.is_set_high().unwrap() {
+            led2.set_low().unwrap();
+        } else {
+            led2.set_high().unwrap();
+        }
+
         delay.delay_ms(500);
 
         // gpiob.outdr.modify(|_, w| w.odr0().clear_bit());
         led1.set_low().unwrap();
-        led2.set_high().unwrap();
         led3.set_state(PinState::High).unwrap();
 
         led_r1.set_low().unwrap();
         led_r2.set_high().unwrap();
+
+        // toggle LED2
+        if led2.is_set_high().unwrap() {
+            led2.set_low().unwrap();
+        } else {
+            led2.set_high().unwrap();
+        }
+
         delay.delay_ms(1_000);
     }
 }
