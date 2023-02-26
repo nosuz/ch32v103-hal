@@ -10,7 +10,6 @@ edition = "2021"
 riscv = { version = "0.10.1", features = ["critical-section-single-hart"] }
 riscv-rt = "0.11.0"
 panic-halt = "0.2.0"
-nb = "1.0.0"
 # Required for bwrite_all
 embedded-hal = "0.2.7"
 
