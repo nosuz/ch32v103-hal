@@ -45,6 +45,11 @@ $ cargo build --all-features --release
 
 * [Running Rust on Microcontrollers](https://blog.mbedded.ninja/programming/languages/rust/running-rust-on-microcontrollers/)
 
+#### SPI
+
+- [bl602-hal/src/spi.rs](https://github.com/sipeed/bl602-hal/blob/main/src/spi.rs)
+- [STM32 Rust hal で SPI を使ってみる](https://moons.link/post-1901/)
+
 ## Making Rust Library
 
 - [逆引き Rust ライブラリシステム](https://qiita.com/nirasan/items/8804046c43ba07ee8fde)

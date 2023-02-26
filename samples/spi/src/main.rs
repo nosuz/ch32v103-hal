@@ -1,0 +1,214 @@
+#![no_std]
+#![no_main]
+
+// provide implementation for critical-section
+use riscv_rt::entry;
+use panic_halt as _;
+
+use core::fmt::Write; // required for writeln!
+use ch32v1::ch32v103; // PAC for CH32V103
+use ch32v103_hal::prelude::*;
+use ch32v103_hal::rcc::*;
+use ch32v103_hal::gpio::*;
+use ch32v103_hal::serial::*;
+use ch32v103_hal::delay::*;
+use ch32v103_hal::spi::*;
+// use embedded_hal::blocking::serial::Write; // Required for bwrite_all
+
+#[entry]
+fn main() -> ! {
+    let peripherals = ch32v103::Peripherals::take().unwrap();
+    let rcc = peripherals.RCC.constrain();
+
+    // let clocks = rcc.cfgr.freeze();
+    let clocks = rcc.cfgr
+        .use_pll((48).mhz(), PllClkSrc::UseHsi)
+        .hclk_prescale(HclkPreScale::Div4)
+        .freeze();
+
+    let gpioa = peripherals.GPIOA.split();
+    let gpiob = peripherals.GPIOB.split();
+
+    //SPI
+    let mut pa4 = gpioa.pa4.into_push_pull_output(); // CS
+
+    let pa5 = gpioa.pa5.into_multiplex_push_pull_output(); // SCK
+    let pa6 = gpioa.pa6.into_floating_input(); // MISO
+    let pa7 = gpioa.pa7.into_multiplex_push_pull_output(); // MOSI
+
+    let mut spi = Spi::spi1((pa5, pa6, pa7), SpiMode::Mode3, &clocks, SpiPclkPrescale::Div128);
+
+    // Serial
+    let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
+    let pa10 = gpioa.pa10.into_floating_input();
+    // Use remapped ports
+    // let pb6 = gpiob.pb6.into_multiplex_push_pull_output();
+    // let pb7 = gpiob.pb7.into_floating_input();
+
+    let usart = Serial::usart1(&clocks, (pa9, pa10), (115200).bps());
+    let (tx, _) = usart.split();
+    let mut log = SerialWriter::new(tx);
+
+    let mut led1 = gpiob.pb2.into_push_pull_output();
+    let mut led2 = gpiob.pb15.into_push_pull_output();
+
+    led1.set_high().unwrap();
+    led2.set_low().unwrap();
+
+    let mut delay = Delay::new(&clocks);
+
+    // Reset ADT7310 and stop continuous mode
+    pa4.set_low().unwrap();
+    spi.write(&[0xff, 0xff, 0xff, 0xff]).unwrap();
+    pa4.set_high().unwrap();
+    delay.delay_us(500);
+
+    loop {
+        // Reset ADT7310 and stop continuous mode
+        pa4.set_low().unwrap();
+        spi.write(&[0xff, 0xff, 0xff, 0xff]).unwrap();
+        pa4.set_high().unwrap();
+        delay.delay_us(500);
+
+        // Read ADT7310 ID
+        pa4.set_low().unwrap();
+        match nb::block!(spi.send(0x58)) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+        match nb::block!(spi.read()) {
+            Ok(_) => {}
+            Err(_) => {}
+        } //dummy
+        match nb::block!(spi.send(0xff)) {
+            Ok(_) => {}
+            Err(_) => {}
+        } //dummy
+        match nb::block!(spi.read()) {
+            Ok(id) => {
+                writeln!(&mut log, "ID:{:02X}", id).unwrap();
+            }
+            Err(_) => {
+                writeln!(&mut log, "Read ID error").unwrap();
+            }
+        }
+        pa4.set_high().unwrap();
+
+        delay.delay_ms(1);
+
+        pa4.set_low().unwrap();
+        spi.write(&[0x58]).unwrap();
+        let mut id: [u8; 1] = [0x00];
+        match spi.transfer(&mut id) {
+            Ok(id) => {
+                writeln!(&mut log, "ID:{:02X}", id[0]).unwrap();
+            }
+            Err(_) => {
+                writeln!(&mut log, "Read ID error").unwrap();
+            }
+        }
+        pa4.set_high().unwrap();
+
+        delay.delay_ms(1);
+
+        // Read temperature from ADT7310
+        pa4.set_low().unwrap();
+        // use blocking trait
+        // FIXME: Only the first measurement success.
+        spi.write(&[0x08, 0x20]).unwrap();
+        // spi.write(&[0x08, 0x00]).unwrap();
+
+        delay.delay_ms(250);
+
+        // match nb::block!(spi.send(0x40)) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // }
+        // match nb::block!(spi.read()) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // } //dummy
+        // match nb::block!(spi.send(0xff)) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // } //dummy
+        // match nb::block!(spi.read()) {
+        //     Ok(stat) => {
+        //         writeln!(&mut log, "Stat:{:04X}", stat).unwrap();
+        //     }
+        //     Err(_) => {}
+        // } //dummy
+
+        // match nb::block!(spi.send(0x54)) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // }
+        // match nb::block!(spi.read()) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // } //dummy
+        // match nb::block!(spi.send(0xff)) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // } //dummy
+        // match nb::block!(spi.read()) {
+        //     Ok(temp_h) => {
+        //         match nb::block!(spi.send(0xff)) {
+        //             Ok(_) => {}
+        //             Err(_) => {}
+        //         } //dummy
+        //         match nb::block!(spi.read()) {
+        //             Ok(temp_l) => {
+        //                 let temp: u16 = ((temp_h as u16) << 8) | (temp_l as u16);
+        //                 writeln!(&mut log, "Raw:{:04X}", temp).unwrap();
+
+        //                 let _temp = if (temp & 0x1000) == 0 {
+        //                     // When positive
+        //                     ((temp >> 3) as f32) / 16.0
+        //                 } else {
+        //                     // When negative
+        //                     (((temp >> 3) - 8192) as f32) / 16.0
+        //                 };
+        //                 writeln!(&mut log, "Temp:{:+.1}C", _temp).unwrap();
+        //             }
+        //             Err(_) => {
+        //                 writeln!(&mut log, "Read TempL error").unwrap();
+        //             }
+        //         }
+        //     }
+        //     Err(_) => {
+        //         writeln!(&mut log, "Read TempH error").unwrap();
+        //     }
+        // }
+        // pa4.set_high().unwrap();
+
+        // delay.delay_ms(1);
+
+        pa4.set_low().unwrap();
+        spi.write(&[0x54]).unwrap();
+        let mut bytes: [u8; 2] = [0x00, 0x00];
+        match spi.transfer(&mut bytes) {
+            Ok(_) => {
+                writeln!(&mut log, "Raw:{:02X}, {:02X}", bytes[0], bytes[1]).unwrap();
+                let temp: u16 = ((bytes[0] as u16) << 8) | (bytes[1] as u16);
+
+                let _temp = if (temp & 0x1000) == 0 {
+                    // When positive
+                    ((temp >> 3) as f32) / 16.0
+                } else {
+                    // When negative
+                    (((temp >> 3) - 8192) as f32) / 16.0
+                };
+                writeln!(&mut log, "Temp:{:+.1}C", _temp).unwrap();
+            }
+            Err(_) => {
+                writeln!(&mut log, "Read Temp error").unwrap();
+            }
+        }
+        pa4.set_high().unwrap();
+
+        led1.toggle().unwrap();
+        led2.toggle().unwrap();
+        delay.delay_ms(10);
+    }
+}
