@@ -41,7 +41,7 @@ macro_rules! gpio {
         pub mod $gpiox {
             use core::marker::PhantomData;
             use core::convert::Infallible;
-            use embedded_hal::digital::v2::{OutputPin, InputPin, StatefulOutputPin};
+            use embedded_hal::digital::v2::{ OutputPin, InputPin, StatefulOutputPin, ToggleableOutputPin };
             use ch32v1::ch32v103::RCC;
             use ch32v1::ch32v103::$GPIOX;
 
@@ -287,6 +287,19 @@ macro_rules! gpio {
                             // Ok((*$GPIOX::ptr()).indr.read().bits() & (0b1 << $i) == 0)
                             Ok((*$GPIOX::ptr()).outdr.read().bits() & (0b1 << $i) == 0)
                         }
+                    }
+                }
+
+                impl<MODE> ToggleableOutputPin for $PXi<Output<MODE>> {
+                    type Error = Infallible;
+
+                    fn toggle(&mut self) -> Result<(), Self::Error> {
+                        if self.is_set_high().unwrap() {
+                            self.set_low().unwrap();
+                        } else {
+                            self.set_high().unwrap();
+                        }
+                        Ok(())
                     }
                 }
             )+

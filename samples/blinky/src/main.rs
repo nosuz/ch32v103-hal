@@ -6,7 +6,6 @@ use riscv_rt::entry;
 use panic_halt as _;
 
 use ch32v1::ch32v103; // PAC for CH32V103
-use embedded_hal::prelude::*;
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
@@ -50,11 +49,12 @@ fn main() -> ! {
         led_r2.set_low().unwrap();
 
         // toggle LED2
-        if led2.is_set_high().unwrap() {
-            led2.set_low().unwrap();
-        } else {
-            led2.set_high().unwrap();
-        }
+        // if led2.is_set_high().unwrap() {
+        //     led2.set_low().unwrap();
+        // } else {
+        //     led2.set_high().unwrap();
+        // }
+        led2.toggle().unwrap();
 
         delay.delay_ms(500);
 
@@ -66,11 +66,9 @@ fn main() -> ! {
         led_r2.set_high().unwrap();
 
         // toggle LED2
-        if led2.is_set_high().unwrap() {
-            led2.set_low().unwrap();
-        } else {
-            led2.set_high().unwrap();
-        }
+        led2.toggle().unwrap();
+        delay.delay_ms(200);
+        led2.toggle().unwrap();
 
         delay.delay_ms(1_000);
     }
