@@ -11,7 +11,7 @@ use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
-use ch32v103_hal::systick::SysTick;
+use ch32v103_hal::blocking::delay::*;
 
 #[entry]
 fn main() -> ! {
@@ -42,7 +42,7 @@ fn main() -> ! {
     led1.set_high().unwrap();
     led2.set_low().unwrap();
 
-    let mut systick = SysTick::new(&clocks);
+    let mut delay = Delay::new(&clocks);
     let mut count = 0;
     loop {
         led1.set_low().unwrap();
@@ -57,7 +57,7 @@ fn main() -> ! {
 
         led1.set_high().unwrap();
         led2.set_low().unwrap();
-        systick.delay_ms(100);
+        delay.delay_ms(100);
         count += 1;
     }
 }

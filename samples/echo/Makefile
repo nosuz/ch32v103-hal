@@ -7,7 +7,7 @@ release:
 	cargo build --release && \
 	riscv64-unknown-elf-objcopy -O binary target/riscv32imac-unknown-none-elf/release/${PKG_NAME} ${BIN_NAME}
 
-flash:
+flash: release
 	wchisp flash ${BIN_NAME}
 
 clean:
