@@ -18,6 +18,7 @@ fn main() -> ! {
     let rcc = peripherals.RCC.constrain();
 
     // let clocks = rcc.cfgr.freeze();
+    // 72MHz not worked for me
     // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::UseHsi).freeze();
     let clocks = rcc.cfgr
         .use_pll((64).mhz(), PllClkSrc::UseHsi)
