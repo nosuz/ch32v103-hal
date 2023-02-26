@@ -1,5 +1,6 @@
 use core::marker::PhantomData;
-use embedded_hal::serial;
+use embedded_hal::prelude::*;
+use embedded_hal::{ blocking, serial };
 use nb;
 use core::convert::Infallible;
 use core::fmt;
@@ -207,3 +208,23 @@ impl<T> fmt::Write for SerialWriter<T> where T: serial::Write<u8> {
         Ok(())
     }
 }
+
+// Only implimenting this marker trait, methods in blocking::serial::Write are available.
+impl blocking::serial::write::Default<u8> for Tx<USART1> {}
+
+// impl blocking::serial::Write<u8> for Tx<USART1> {
+//     type Error = Infallible;
+
+//     fn bwrite_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
+//         Ok(())
+//     }
+
+//     fn bflush(&mut self) -> Result<(), Self::Error> {
+//         match nb::block!(self.flush()) {
+//             Ok(_) => {}
+//             Err(_) => {}
+//         }
+
+//         Ok(())
+//     }
+// }
