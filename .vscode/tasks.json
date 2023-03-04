@@ -60,6 +60,26 @@
         "kind": "test",
         "isDefault": true
       }
+    },
+    {
+      "label": "make i2c",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/i2c"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash i2c",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/i2c"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
     }
   ]
 }
