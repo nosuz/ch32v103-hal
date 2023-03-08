@@ -62,6 +62,26 @@
       }
     },
     {
+      "label": "make spi",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/spi"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash spi",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/spi"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
       "label": "make i2c",
       "type": "shell",
       "command": "make",
