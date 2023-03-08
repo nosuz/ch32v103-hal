@@ -116,16 +116,34 @@ impl<SCK, MISO, MOSI> Spi<(SCK, MISO, MOSI)> {
 
             // set DEF and LSBFIRST
 
-            // Setup NSS
-            // SSM, SSI, SSOE
-            // (*SPI1::ptr()).ctlr1.modify(|_, w| w.ssm().set_bit().ssi().set_bit());
-            (*SPI1::ptr()).ctlr2.modify(|_, w| w.ssoe().set_bit());
+            // Setup NSS, SSM, SSI, SSOE
 
+            // Control CS by hardware. One Master and One Slave
+            // CS is Low when SPE is set and High when SPE is High.
+            // (*SPI1::ptr()).ctlr1.modify(|_, w| w.ssm().clear_bit().ssi().clear_bit()); // ssi may not care on Master
+            // (*SPI1::ptr()).ctlr2.modify(|_, w| w.ssoe().set_bit());
+            // // Enable SPI as Master
+            // (*SPI1::ptr()).ctlr1.modify(|_, w| w.mstr().set_bit().spe().clear_bit());
+
+            // Control CS by software or GPIO
+            (*SPI1::ptr()).ctlr1.modify(|_, w| w.ssm().set_bit().ssi().set_bit()); // ssi must set 1. Why?
             // Enable SPI as Master
             (*SPI1::ptr()).ctlr1.modify(|_, w| w.mstr().set_bit().spe().set_bit());
         }
 
         Spi { pins }
+    }
+
+    pub fn enable(&self) {
+        unsafe {
+            (*SPI1::ptr()).ctlr1.modify(|_, w| w.spe().set_bit());
+        }
+    }
+
+    pub fn disable(&self) {
+        unsafe {
+            (*SPI1::ptr()).ctlr1.modify(|_, w| w.spe().clear_bit());
+        }
     }
 }
 
