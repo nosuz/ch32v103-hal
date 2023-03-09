@@ -57,18 +57,32 @@ fn main() -> ! {
 
     let mut delay = Delay::new(&clocks);
 
-    // Reset ADT7310 and stop continuous mode
+    // Reset ADT7310
     pa4.set_low().unwrap();
     spi.write(&[0xff, 0xff, 0xff, 0xff]).unwrap();
     pa4.set_high().unwrap();
     delay.delay_us(500);
 
     loop {
-        // Reset ADT7310 and stop continuous mode
+        // wake up from shutdown
         pa4.set_low().unwrap();
-        spi.write(&[0xff, 0xff, 0xff, 0xff]).unwrap();
+        spi.write(&[0x08, 0x00]).unwrap();
         pa4.set_high().unwrap();
-        delay.delay_us(500);
+        delay.delay_ms(1);
+
+        pa4.set_low().unwrap();
+        spi.write(&[0x48]).unwrap();
+        let mut stat: [u8; 1] = [0xff];
+        match spi.transfer(&mut stat) {
+            Ok(_) => {
+                writeln!(&mut log, "STAT:{:02X}", stat[0]).unwrap();
+            }
+            Err(_) => {
+                writeln!(&mut log, "Read status error").unwrap();
+            }
+        }
+        pa4.set_high().unwrap();
+        delay.delay_ms(1);
 
         // Read ADT7310 ID
         pa4.set_low().unwrap();
@@ -94,13 +108,13 @@ fn main() -> ! {
         }
         pa4.set_high().unwrap();
 
-        delay.delay_ms(1);
+        delay.delay_us(500);
 
         pa4.set_low().unwrap();
         spi.write(&[0x58]).unwrap();
         let mut id: [u8; 1] = [0x00];
         match spi.transfer(&mut id) {
-            Ok(id) => {
+            Ok(_) => {
                 writeln!(&mut log, "ID:{:02X}", id[0]).unwrap();
             }
             Err(_) => {
@@ -114,9 +128,7 @@ fn main() -> ! {
         // Read temperature from ADT7310
         pa4.set_low().unwrap();
         // use blocking trait
-        // FIXME: Only the first measurement success.
         spi.write(&[0x08, 0x20]).unwrap();
-        // spi.write(&[0x08, 0x00]).unwrap();
 
         delay.delay_ms(250);
 
@@ -184,8 +196,8 @@ fn main() -> ! {
 
         // delay.delay_ms(1);
 
-        pa4.set_low().unwrap();
-        spi.write(&[0x54]).unwrap();
+        // spi.write(&[0x54]).unwrap(); 0x54 for continuous mode only
+        spi.write(&[0x50]).unwrap();
         let mut bytes: [u8; 2] = [0x00, 0x00];
         match spi.transfer(&mut bytes) {
             Ok(_) => {
@@ -203,6 +215,21 @@ fn main() -> ! {
             }
             Err(_) => {
                 writeln!(&mut log, "Read Temp error").unwrap();
+            }
+        }
+        pa4.set_high().unwrap();
+
+        delay.delay_us(500);
+
+        pa4.set_low().unwrap();
+        spi.write(&[0x48]).unwrap();
+        let mut stat: [u8; 1] = [0xff];
+        match spi.transfer(&mut stat) {
+            Ok(_) => {
+                writeln!(&mut log, "STAT:{:02X}", stat[0]).unwrap();
+            }
+            Err(_) => {
+                writeln!(&mut log, "Read status error").unwrap();
             }
         }
         pa4.set_high().unwrap();
