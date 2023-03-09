@@ -126,7 +126,12 @@ impl<SCK, MISO, MOSI> Spi<(SCK, MISO, MOSI)> {
             // (*SPI1::ptr()).ctlr1.modify(|_, w| w.mstr().set_bit().spe().clear_bit());
 
             // Control CS by software or GPIO
-            (*SPI1::ptr()).ctlr1.modify(|_, w| w.ssm().set_bit().ssi().set_bit()); // ssi must set 1. Why?
+            (*SPI1::ptr()).ctlr1.modify(|_, w| w.ssm().set_bit().ssi().set_bit());
+            // ssi must set 1. Why?
+            // I found good explanation on stack overflow.
+            // Setting nss_soft in Master (SPI)
+            //  https://stackoverflow.com/questions/48849942/setting-nss-soft-in-master-spi
+
             // Enable SPI as Master
             (*SPI1::ptr()).ctlr1.modify(|_, w| w.mstr().set_bit().spe().set_bit());
         }
