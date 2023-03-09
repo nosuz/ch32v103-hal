@@ -64,12 +64,6 @@ fn main() -> ! {
     delay.delay_us(500);
 
     loop {
-        // wake up from shutdown
-        pa4.set_low().unwrap();
-        spi.write(&[0x08, 0x00]).unwrap();
-        pa4.set_high().unwrap();
-        delay.delay_ms(1);
-
         pa4.set_low().unwrap();
         spi.write(&[0x48]).unwrap();
         let mut stat: [u8; 1] = [0xff];
