@@ -44,7 +44,6 @@ fn main() -> ! {
     led2.set_low().unwrap();
 
     let mut delay = Delay::new(&clocks);
-    let mut count = 0;
     loop {
         led1.set_low().unwrap();
         led2.set_high().unwrap();
@@ -63,6 +62,5 @@ fn main() -> ! {
         led1.set_high().unwrap();
         led2.set_low().unwrap();
         delay.delay_ms(100);
-        count += 1;
     }
 }
