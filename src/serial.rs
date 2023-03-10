@@ -77,13 +77,14 @@ unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {
 }
 
 // Serial abstraction
-pub struct Serial<PINS> {
+pub struct Serial<USART, PINS> {
+    usart: USART,
     pins: PINS,
 }
 
-impl<TX, RX> Serial<(TX, RX)> {
+impl<TX, RX> Serial<USART1, (TX, RX)> {
     // init USART
-    pub fn usart1(clocks: &Clocks, pins: (TX, RX), baud_rate: Bps) -> Self
+    pub fn usart1(usart: USART1, pins: (TX, RX), baud_rate: Bps, clocks: &Clocks) -> Self
         where TX: TxPin<USART1>, RX: RxPin<USART1>
     {
         // enable USART
@@ -115,7 +116,7 @@ impl<TX, RX> Serial<(TX, RX)> {
             (*USART1::ptr()).ctlr1.modify(|_, w| w.ue().set_bit().te().set_bit().re().set_bit());
         }
 
-        Serial { pins }
+        Serial { usart: usart, pins: pins }
     }
 
     /// Splits the `Serial` abstraction into a transmitter and a receiver half

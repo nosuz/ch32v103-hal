@@ -28,7 +28,7 @@ fn main() -> ! {
     let mut led1 = gpiob.pb2.into_push_pull_output();
     let mut led2 = gpiob.pb15.into_push_pull_output();
 
-    let usart = Serial::usart1(&clocks, (pa9, pa10), (115200).bps());
+    let usart = Serial::usart1(peripherals.USART1, (pa9, pa10), (115200).bps(), &clocks);
     let (mut tx, mut rx) = usart.split();
 
     led1.set_high().unwrap();

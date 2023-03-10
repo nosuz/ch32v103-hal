@@ -36,7 +36,7 @@ fn main() -> ! {
     let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
     let pa10 = gpioa.pa10.into_floating_input();
 
-    let usart = Serial::usart1(&clocks, (pa9, pa10), (115200).bps());
+    let usart = Serial::usart1(peripherals.USART1, (pa9, pa10), (115200).bps(), &clocks);
     let (tx, _) = usart.split();
     let mut log = SerialWriter::new(tx);
 
