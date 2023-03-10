@@ -100,6 +100,26 @@
         "kind": "test",
         "isDefault": true
       }
+    },
+    {
+      "label": "make adc",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/adc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash adc",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/adc"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
     }
   ]
 }
