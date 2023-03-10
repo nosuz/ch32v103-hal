@@ -13,7 +13,7 @@ use crate::gpio::gpiob::{ PB6, PB7 };
 
 // define serial error
 #[derive(Debug)]
-pub enum Error {
+pub enum UsartError {
     // Framing error
     Framing,
     // Noise error
@@ -132,7 +132,6 @@ impl<TX, RX> Serial<(TX, RX)> {
 }
 
 impl serial::Write<u8> for Tx<USART1> {
-    // type Error = Void;
     type Error = Infallible;
 
     fn write(&mut self, byte: u8) -> nb::Result<(), Self::Error> {
@@ -159,9 +158,9 @@ impl serial::Write<u8> for Tx<USART1> {
 }
 
 impl serial::Read<u8> for Rx<USART1> {
-    type Error = Error;
+    type Error = UsartError;
 
-    fn read(&mut self) -> nb::Result<u8, Error> {
+    fn read(&mut self) -> nb::Result<u8, UsartError> {
         unsafe {
             // read STATR
             let statr = (*USART1::ptr()).statr.read();
@@ -170,13 +169,13 @@ impl serial::Read<u8> for Rx<USART1> {
             } else {
                 Err(
                     if statr.ore().bit_is_set() {
-                        nb::Error::Other(Error::Overrun)
+                        nb::Error::Other(UsartError::Overrun)
                     } else if statr.ne().bit_is_set() {
-                        nb::Error::Other(Error::Noise)
+                        nb::Error::Other(UsartError::Noise)
                     } else if statr.fe().bit_is_set() {
-                        nb::Error::Other(Error::Framing)
+                        nb::Error::Other(UsartError::Framing)
                     } else if statr.pe().bit_is_set() {
-                        nb::Error::Other(Error::Parity)
+                        nb::Error::Other(UsartError::Parity)
                     } else {
                         nb::Error::WouldBlock
                     }
