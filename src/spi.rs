@@ -66,17 +66,19 @@ unsafe impl MosiPin<SPI1> for PA7<AltOutput<PushPull>> {
     }
 }
 
-pub struct Spi<PINS> {
+pub struct Spi<SPI, PINS> {
+    spi: SPI,
     pins: PINS,
 }
 
-impl<SCK, MISO, MOSI> Spi<(SCK, MISO, MOSI)> {
+impl<SCK, MISO, MOSI> Spi<SPI1, (SCK, MISO, MOSI)> {
     // init USART
     pub fn spi1(
+        spi: SPI1,
         pins: (SCK, MISO, MOSI),
         mode: SpiMode,
-        clocks: &Clocks,
-        div: SpiPclkPrescale
+        div: SpiPclkPrescale,
+        clocks: &Clocks
     )
         -> Self
         where SCK: SckPin<SPI1>, MISO: MisoPin<SPI1>, MOSI: MosiPin<SPI1>
@@ -136,7 +138,7 @@ impl<SCK, MISO, MOSI> Spi<(SCK, MISO, MOSI)> {
             (*SPI1::ptr()).ctlr1.modify(|_, w| w.mstr().set_bit().spe().set_bit());
         }
 
-        Spi { pins }
+        Spi { spi, pins }
     }
 
     pub fn enable(&self) {
@@ -152,7 +154,7 @@ impl<SCK, MISO, MOSI> Spi<(SCK, MISO, MOSI)> {
     }
 }
 
-impl<SCK, MISO, MOSI> spi::FullDuplex<u8> for Spi<(SCK, MISO, MOSI)> {
+impl<SCK, MISO, MOSI> spi::FullDuplex<u8> for Spi<SPI1, (SCK, MISO, MOSI)> {
     type Error = Error;
 
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
@@ -180,15 +182,15 @@ impl<SCK, MISO, MOSI> spi::FullDuplex<u8> for Spi<(SCK, MISO, MOSI)> {
 
 // This trait has default implementation for blocking::spi::Transfer<u8>.
 impl<SCK, MISO, MOSI> blocking::spi::transfer::Default<u8>
-    for Spi<(SCK, MISO, MOSI)>
+    for Spi<SPI1, (SCK, MISO, MOSI)>
     where SCK: SckPin<SPI1>, MISO: MisoPin<SPI1>, MOSI: MosiPin<SPI1> {}
 
 // This trait has default implementation for blocking::spi::Write<u8>.
 impl<SCK, MISO, MOSI> blocking::spi::write::Default<u8>
-    for Spi<(SCK, MISO, MOSI)>
+    for Spi<SPI1, (SCK, MISO, MOSI)>
     where SCK: SckPin<SPI1>, MISO: MisoPin<SPI1>, MOSI: MosiPin<SPI1> {}
 
 // This trait has default implementation for blocking::spi::WriteIter<u8>.
 impl<SCK, MISO, MOSI> blocking::spi::write_iter::Default<u8>
-    for Spi<(SCK, MISO, MOSI)>
+    for Spi<SPI1, (SCK, MISO, MOSI)>
     where SCK: SckPin<SPI1>, MISO: MisoPin<SPI1>, MOSI: MosiPin<SPI1> {}

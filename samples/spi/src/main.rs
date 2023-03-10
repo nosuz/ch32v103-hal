@@ -36,7 +36,13 @@ fn main() -> ! {
     let pa6 = gpioa.pa6.into_floating_input(); // MISO
     let pa7 = gpioa.pa7.into_multiplex_push_pull_output(); // MOSI
 
-    let mut spi = Spi::spi1((pa5, pa6, pa7), SpiMode::Mode3, &clocks, SpiPclkPrescale::Div128);
+    let mut spi = Spi::spi1(
+        peripherals.SPI1,
+        (pa5, pa6, pa7),
+        SpiMode::Mode3,
+        SpiPclkPrescale::Div128,
+        &clocks
+    );
 
     // Serial
     let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
