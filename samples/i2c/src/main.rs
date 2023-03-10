@@ -52,7 +52,7 @@ fn main() -> ! {
     let pb9 = gpiob.pb9.into_multiplex_open_drain_output();
 
     // required peripherals.I2C1 to occupy
-    let mut i2c = I2c::i2c1(peripherals.I2C1, (pb6, pb7), &clocks, I2cMode::Fast);
+    let mut i2c = I2c::i2c1(peripherals.I2C1, (pb6, pb7), I2cMode::Fast, &clocks);
 
     let mut delay = Delay::new(&clocks);
 

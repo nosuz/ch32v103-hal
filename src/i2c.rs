@@ -55,7 +55,7 @@ pub struct I2c<I2C, PINS> {
 impl<SC, SD> I2c<I2C1, (SC, SD)> {
     // init I2C1
     // TODO: I2c::new() for I2C1 and I2C2
-    pub fn i2c1(i2c: I2C1, pins: (SC, SD), clocks: &Clocks, mode: I2cMode) -> Self
+    pub fn i2c1(i2c: I2C1, pins: (SC, SD), mode: I2cMode, clocks: &Clocks) -> Self
         where SC: SclPin<I2C1>, SD: SdaPin<I2C1>
     {
         unsafe {
