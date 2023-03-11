@@ -23,6 +23,8 @@ pub enum Sysclk {
 
 pub enum PllClkSrc {
     UseHsi,
+    // TODO: Not supported on ch32v103 PAC
+    // UseHsiDiv2,
     UseHse,
     UseHseDiv2,
 }
@@ -169,6 +171,13 @@ impl CFGR {
                             (*RCC::ptr()).cfgr0.modify(|_, w| w.pllsrc().clear_bit());
                         }
                     }
+                    // TODO: Not supported on ch32v103 PAC
+                    // Some(PllClkSrc::UseHsiDiv2) => {
+                    //     pll_base_freq = HSI / 2;
+                    //     unsafe {
+                    //         (*RCC::ptr()).extend_ctr.modify(|_, w| w.hsipre().clear_bit());
+                    //     }
+                    // }
                     Some(PllClkSrc::UseHse) => {
                         assert!(self.hse_freq.is_some());
                         pll_base_freq = self.hse_freq.unwrap();
