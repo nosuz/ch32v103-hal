@@ -13,6 +13,7 @@ use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
 use ch32v103_hal::delay::*;
 use ch32v103_hal::spi::*;
+use ch32v103_hal::time::*;
 // use embedded_hal::blocking::serial::Write; // Required for bwrite_all
 
 #[entry]

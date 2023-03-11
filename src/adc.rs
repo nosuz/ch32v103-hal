@@ -54,8 +54,15 @@ impl<ADCX> Adc<ADCX> {
         };
 
         unsafe {
-            (*RCC::ptr()).cfgr0.modify(|_, w| w.adcpre().bits(adcpre_bits));
+            // enable ADC
             (*RCC::ptr()).apb2pcenr.modify(|_, w| w.adcen().set_bit());
+            // set ADC clock's prescale
+            (*RCC::ptr()).cfgr0.modify(|_, w| w.adcpre().bits(adcpre_bits));
+            // set every SMP 0b111 or 239.5 cycles
+            // slow is not worse than too fast.
+            // TODO: make interface to change SMPx
+            (*ADC::ptr()).samptr1.write(|w| w.bits(0xffff_ffff));
+            (*ADC::ptr()).samptr2.write(|w| w.bits(0xffff_ffff));
         }
 
         let tconv = (240.0 + 12.5) / ((adc_clock / 1_000_000) as f32);
@@ -81,14 +88,15 @@ impl<ADCX> Adc<ADCX> {
         }
     }
 
-    fn do_conversion(&mut self, channel: u8) -> u16 {
+    fn do_conversion(&self, channel: u8) -> u16 {
         unsafe {
             (*ADC::ptr()).rsqr3.modify(|_, w| w.sq1().bits(channel));
             (*ADC::ptr()).rsqr1.modify(|_, w| w.l().bits(0x1));
 
-            // start convertion
+            // start conversion
             (*ADC::ptr()).ctlr2.modify(|_, w| w.adon().set_bit());
-            self.delay.delay_us(self.tconv);
+            // wait conversion
+            while (*ADC::ptr()).statr.read().eoc().bit_is_clear() {}
 
             (*ADC::ptr()).rdatar.read().bits() as u16
         }
