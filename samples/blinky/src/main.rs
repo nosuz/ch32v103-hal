@@ -18,8 +18,8 @@ fn main() -> ! {
 
     // let clocks = rcc.cfgr.freeze();
     // 72MHz not worked for me
-    // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::UseHsi).freeze();
-    let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::UseHsi).hclk((32).mhz()).freeze();
+    // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).freeze();
+    let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).hclk((32).mhz()).freeze();
 
     let gpioa = peripherals.GPIOA.split();
     let mut led_r1 = gpioa.pa4.into_push_pull_output();

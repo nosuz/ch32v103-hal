@@ -21,7 +21,7 @@ fn main() -> ! {
 
     // let clocks = rcc.cfgr.freeze();
     let clocks = rcc.cfgr
-        .use_pll((48).mhz(), PllClkSrc::UseHsi)
+        .use_pll((48).mhz(), PllClkSrc::Hsi)
         .hclk((12).mhz())
         .pclk2((6).mhz())
         .freeze();
@@ -33,7 +33,7 @@ fn main() -> ! {
     let gpiob = peripherals.GPIOB.split();
     let mut led1 = gpiob.pb2.into_push_pull_output();
     let mut led2 = gpiob.pb15.into_push_pull_output();
-    // Use remapped ports
+    //  remapped ports
     let pb6 = gpiob.pb6.into_multiplex_push_pull_output();
     let pb7 = gpiob.pb7.into_floating_input();
 

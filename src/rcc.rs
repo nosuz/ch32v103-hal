@@ -16,17 +16,17 @@ pub struct Rcc {
 const HSI: u32 = 8_000_000; // Hz
 
 pub enum Sysclk {
-    UseHsi,
-    UseHse,
-    UsePll,
+    Hsi,
+    Hse,
+    Pll,
 }
 
 pub enum PllClkSrc {
-    UseHsi,
+    Hsi,
     // TODO: Not supported on ch32v103 PAC
-    // UseHsiDiv2,
-    UseHse,
-    UseHseDiv2,
+    // HsiDiv2,
+    Hse,
+    HseDiv2,
 }
 
 // Clock configuration
@@ -94,18 +94,18 @@ impl CFGR {
     }
 
     pub fn use_hsi(mut self) -> Self {
-        self.sysclk_source = Some(Sysclk::UseHsi);
+        self.sysclk_source = Some(Sysclk::Hsi);
         self
     }
 
     pub fn use_hse(mut self) -> Self {
-        self.sysclk_source = Some(Sysclk::UseHse);
+        self.sysclk_source = Some(Sysclk::Hse);
         self
     }
 
     pub fn use_pll(mut self, freq: Hertz, src: PllClkSrc) -> Self {
         assert!(freq.0 <= 72_000_000);
-        self.sysclk_source = Some(Sysclk::UsePll);
+        self.sysclk_source = Some(Sysclk::Pll);
         self.pll_source = Some(src);
         self.pll_freq = Some(freq.0);
         self
@@ -151,34 +151,34 @@ impl CFGR {
         }
 
         match self.sysclk_source {
-            Some(Sysclk::UseHsi) => {
+            Some(Sysclk::Hsi) => {
                 unsafe {
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0));
                 }
                 self.sysclk = Some(HSI);
             }
-            Some(Sysclk::UseHse) => {
+            Some(Sysclk::Hse) => {
                 unsafe {
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0b1));
                 }
                 self.sysclk = self.hse_freq;
             }
-            Some(Sysclk::UsePll) => {
+            Some(Sysclk::Pll) => {
                 let mut pll_base_freq = HSI;
                 match self.pll_source {
-                    Some(PllClkSrc::UseHsi) => {
+                    Some(PllClkSrc::Hsi) => {
                         unsafe {
                             (*RCC::ptr()).cfgr0.modify(|_, w| w.pllsrc().clear_bit());
                         }
                     }
                     // TODO: Not supported on ch32v103 PAC
-                    // Some(PllClkSrc::UseHsiDiv2) => {
+                    // Some(PllClkSrc::HsiDiv2) => {
                     //     pll_base_freq = HSI / 2;
                     //     unsafe {
                     //         (*RCC::ptr()).extend_ctr.modify(|_, w| w.hsipre().clear_bit());
                     //     }
                     // }
-                    Some(PllClkSrc::UseHse) => {
+                    Some(PllClkSrc::Hse) => {
                         assert!(self.hse_freq.is_some());
                         pll_base_freq = self.hse_freq.unwrap();
                         unsafe {
@@ -187,7 +187,7 @@ impl CFGR {
                             );
                         }
                     }
-                    Some(PllClkSrc::UseHseDiv2) => {
+                    Some(PllClkSrc::HseDiv2) => {
                         assert!(self.hse_freq.is_some());
                         pll_base_freq = self.hse_freq.unwrap() / 2;
                         unsafe {
@@ -197,7 +197,7 @@ impl CFGR {
                         }
                     }
                     None => {
-                        // pll_source must be set if UsePll.
+                        // pll_source must be set if Pll.
                         unreachable!();
                     }
                 }

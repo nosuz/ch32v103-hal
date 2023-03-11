@@ -27,7 +27,7 @@ fn main() -> ! {
     let rcc = peripherals.RCC.constrain();
 
     // let clocks = rcc.cfgr.freeze();
-    let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::UseHsi).hclk((8).mhz()).freeze();
+    let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::Hsi).hclk((8).mhz()).freeze();
 
     let gpioa = peripherals.GPIOA.split();
     let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
@@ -42,7 +42,7 @@ fn main() -> ! {
     let mut led1 = gpiob.pb2.into_push_pull_output();
     let mut led2 = gpiob.pb15.into_push_pull_output();
 
-    // Use I2C1
+    //  I2C1
     let pb6 = gpiob.pb6.into_multiplex_open_drain_output();
     let pb7 = gpiob.pb7.into_multiplex_open_drain_output();
     let pb8 = gpiob.pb8.into_multiplex_open_drain_output();

@@ -20,7 +20,7 @@ fn main() -> ! {
     let rcc = peripherals.RCC.constrain();
 
     // let clocks = rcc.cfgr.freeze();
-    let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::UseHsi).hclk((24).mhz()).freeze();
+    let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::Hsi).hclk((24).mhz()).freeze();
 
     let gpioa = peripherals.GPIOA.split();
     let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
