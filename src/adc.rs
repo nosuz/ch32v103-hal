@@ -5,20 +5,38 @@ use crate::prelude::*;
 use crate::rcc::*;
 use crate::gpio::*;
 use crate::delay::*;
-use crate::gpio::gpioa::{ PA0 };
+use crate::gpio::gpioa::{ PA0, PA1, PA2, PA3, PA4, PA5, PA6, PA7 };
+use crate::gpio::gpiob::{ PB0, PB1 };
+// use crate::gpio::gpioc::{ PC0, PC1, PC2, PC3, PC4, PC5 };
 
-// pub trait Channel<ADC> {
-//     type ID;
-//     fn channel() -> Self::ID;
-// }
+macro_rules! adc_channel {
+    ($PXi:ident, $i:expr) => {
+        impl<ADC> Channel<ADC> for $PXi<Input<Analog>> {
+            type ID = u8;
 
-impl<ADC> Channel<ADC> for PA0<Input<Analog>> {
-    type ID = u8;
-
-    fn channel() -> u8 {
-        0_u8
-    }
+            fn channel() -> u8 {
+                $i
+            }
+        }
+    };
 }
+
+adc_channel!(PA0, 0);
+adc_channel!(PA1, 1);
+adc_channel!(PA2, 2);
+adc_channel!(PA3, 3);
+adc_channel!(PA4, 4);
+adc_channel!(PA5, 5);
+adc_channel!(PA6, 6);
+adc_channel!(PA7, 7);
+adc_channel!(PB0, 8);
+adc_channel!(PB1, 9);
+// adc_channel!(PC0, 10);
+// adc_channel!(PC1, 11);
+// adc_channel!(PC2, 12);
+// adc_channel!(PC3, 13);
+// adc_channel!(PC4, 14);
+// adc_channel!(PC5, 15);
 
 pub struct Adc<ADC> {
     adc: ADC,
@@ -37,7 +55,7 @@ impl<ADCX> Adc<ADCX> {
         }
     }
 
-    pub fn power_up(&mut self) {
+    fn power_up(&mut self) {
         unsafe {
             (*ADC::ptr()).ctlr2.modify(|_, w| w.adon().set_bit());
             self.delay.delay_us(1);
@@ -45,13 +63,13 @@ impl<ADCX> Adc<ADCX> {
         }
     }
 
-    pub fn power_down(&self) {
+    fn power_down(&self) {
         unsafe {
             (*ADC::ptr()).ctlr2.modify(|_, w| w.adon().clear_bit());
         }
     }
 
-    pub fn do_conversion(&self, channel: u8) -> u16 {
+    fn do_conversion(&self, channel: u8) -> u16 {
         unsafe {
             (*ADC::ptr()).rsqr3.modify(|_, w| w.sq1().bits(channel));
             (*ADC::ptr()).rsqr1.modify(|_, w| w.l().bits(0x1));
@@ -62,8 +80,19 @@ impl<ADCX> Adc<ADCX> {
         }
     }
 
-    pub fn read_temp(&self) -> u16 {
-        unsafe { (*ADC::ptr()).rdatar.read().bits() as u16 }
+    pub fn read_temp(&mut self) -> u16 {
+        unsafe {
+            (*ADC::ptr()).ctlr2.modify(|_, w| w.tsvrefe().set_bit());
+        }
+
+        self.power_up();
+        // internal temperature sensor in on channel 16
+        let result = self.do_conversion(16);
+        unsafe {
+            (*ADC::ptr()).ctlr2.modify(|_, w| w.tsvrefe().clear_bit());
+        }
+        self.power_down();
+        result.into()
     }
 }
 
@@ -74,7 +103,6 @@ impl<WORD, PIN> OneShot<Adc<ADC>, WORD, PIN>
     type Error = ();
 
     fn read(&mut self, _pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
-        // delay.delay_us(1);
         self.power_up();
 
         let chan = PIN::channel();

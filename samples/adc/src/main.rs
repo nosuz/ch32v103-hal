@@ -55,6 +55,10 @@ fn main() -> ! {
         let v = ((raw as f32) * 3.3) / 4095.0;
         writeln!(&mut log, "{:.2}V", v).unwrap();
 
+        let tm = adc.read_temp();
+        let temp = (((tm as f32) * 3.3) / 4095.0 - 1.34) / 4.3 + 25.0;
+        writeln!(&mut log, "Temp:{:.2}C", temp).unwrap();
+
         led1.set_high().unwrap();
         led2.set_low().unwrap();
 
