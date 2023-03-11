@@ -3,6 +3,7 @@ use ch32v1::ch32v103::{ RCC, SPI1 };
 
 use nb;
 use crate::rcc::*;
+use crate::time::*;
 use crate::gpio::*;
 use crate::gpio::gpioa::{ PA5, PA6, PA7 };
 
@@ -11,17 +12,6 @@ pub enum SpiMode {
     Mode1,
     Mode2,
     Mode3,
-}
-
-pub enum SpiPclkPrescale {
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-    Div32,
-    Div64,
-    Div128,
-    Div256,
 }
 
 // define spi error
@@ -77,7 +67,7 @@ impl<SCK, MISO, MOSI> Spi<SPI1, (SCK, MISO, MOSI)> {
         spi: SPI1,
         pins: (SCK, MISO, MOSI),
         mode: SpiMode,
-        div: SpiPclkPrescale,
+        speed: Hertz,
         clocks: &Clocks
     )
         -> Self
@@ -88,17 +78,17 @@ impl<SCK, MISO, MOSI> Spi<SPI1, (SCK, MISO, MOSI)> {
             (*RCC::ptr()).apb2pcenr.modify(|_, w| w.spi1en().set_bit());
 
             // Set SPI1 to Master mode
-            let br_bits = match div {
-                SpiPclkPrescale::Div2 => { 0b000 }
-                SpiPclkPrescale::Div4 => { 0b001 }
-                SpiPclkPrescale::Div8 => { 0b010 }
-                SpiPclkPrescale::Div16 => { 0b011 }
-                SpiPclkPrescale::Div32 => { 0b100 }
-                SpiPclkPrescale::Div64 => { 0b101 }
-                SpiPclkPrescale::Div128 => { 0b110 }
-                SpiPclkPrescale::Div256 => { 0b111 }
+            let br_bits = match clocks.pclk2().0 / speed.0 {
+                0 => unreachable!(),
+                1..=2 => 0b000,
+                3..=5 => 0b001,
+                6..=11 => 0b010,
+                12..=23 => 0b011,
+                24..=47 => 0b100,
+                48..=95 => 0b101,
+                96..=191 => 0b110,
+                _ => 0b111,
             };
-
             (*SPI1::ptr()).ctlr1.modify(|_, w| w.br().bits(br_bits));
 
             match mode {
