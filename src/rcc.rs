@@ -27,24 +27,6 @@ pub enum PllClkSrc {
     UseHseDiv2,
 }
 
-pub enum HclkPreScale {
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-    Div64,
-    Div128,
-    Div256,
-    Div512,
-}
-
-pub enum PclkPreScale {
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-}
-
 // Clock configuration
 pub struct CFGR {
     hse_freq: Option<u32>,
@@ -53,9 +35,9 @@ pub struct CFGR {
     pll_freq: Option<u32>,
     sysclk_source: Option<Sysclk>,
     sysclk: Option<u32>,
-    hclk_div: Option<HclkPreScale>,
-    pclk1_div: Option<PclkPreScale>,
-    pclk2_div: Option<PclkPreScale>,
+    hclk_freq: Option<u32>,
+    pclk1_freq: Option<u32>,
+    pclk2_freq: Option<u32>,
 }
 
 pub struct Clocks {
@@ -90,9 +72,9 @@ impl RccExt for RCC {
                 pll_freq: None,
                 sysclk_source: None,
                 sysclk: None,
-                hclk_div: None,
-                pclk1_div: None,
-                pclk2_div: None,
+                hclk_freq: None,
+                pclk1_freq: None,
+                pclk2_freq: None,
             },
         }
     }
@@ -127,18 +109,18 @@ impl CFGR {
         self
     }
 
-    pub fn hclk_prescale(mut self, div: HclkPreScale) -> Self {
-        self.hclk_div = Some(div);
+    pub fn hclk(mut self, freq: Hertz) -> Self {
+        self.hclk_freq = Some(freq.0);
         self
     }
 
-    pub fn pclk1_prescale(mut self, div: PclkPreScale) -> Self {
-        self.pclk1_div = Some(div);
+    pub fn pclk1(mut self, freq: Hertz) -> Self {
+        self.pclk1_freq = Some(freq.0);
         self
     }
 
-    pub fn pclk12_prescale(mut self, div: PclkPreScale) -> Self {
-        self.pclk2_div = Some(div);
+    pub fn pclk2(mut self, freq: Hertz) -> Self {
+        self.pclk2_freq = Some(freq.0);
         self
     }
 
@@ -234,40 +216,52 @@ impl CFGR {
 
         let sysclk = self.sysclk.unwrap();
 
-        let (hpre_bits, hclk) = match self.hclk_div {
-            Some(HclkPreScale::Div2) => (0b1000, sysclk / 2),
-            Some(HclkPreScale::Div4) => (0b1001, sysclk / 4),
-            Some(HclkPreScale::Div8) => (0b1010, sysclk / 8),
-            Some(HclkPreScale::Div16) => (0b1011, sysclk / 16),
-            Some(HclkPreScale::Div64) => (0b1100, sysclk / 64),
-            Some(HclkPreScale::Div128) => (0b1101, sysclk / 128),
-            Some(HclkPreScale::Div256) => (0b1110, sysclk / 256),
-            Some(HclkPreScale::Div512) => (0b1111, sysclk / 512),
-            None => (0b0000, sysclk),
+        let (hpre_bits, hclk) = if self.hclk_freq.is_some() {
+            match sysclk / self.hclk_freq.unwrap() {
+                0..=1 => (0b0000, sysclk),
+                2 => (0b1000, sysclk / 2),
+                3..=6 => (0b1001, sysclk / 4),
+                7..=11 => (0b1010, sysclk / 8),
+                12..=31 => (0b1011, sysclk / 16),
+                32..=90 => (0b1100, sysclk / 64),
+                91..=181 => (0b1101, sysclk / 128),
+                182..=362 => (0b1110, sysclk / 256),
+                _ => (0b1111, sysclk / 512),
+            }
+        } else {
+            (0b0000, sysclk)
         };
         unsafe {
             (*RCC::ptr()).cfgr0.modify(|_, w| w.hpre().bits(hpre_bits));
         }
 
         // APB1
-        let (ppre1_bits, pclk1) = match self.pclk1_div {
-            Some(PclkPreScale::Div2) => (0b100, hclk / 2),
-            Some(PclkPreScale::Div4) => (0b101, hclk / 4),
-            Some(PclkPreScale::Div8) => (0b110, hclk / 8),
-            Some(PclkPreScale::Div16) => (0b111, hclk / 16),
-            None => (0b000, hclk),
+        let (ppre1_bits, pclk1) = if self.pclk1_freq.is_some() {
+            match hclk / self.pclk1_freq.unwrap() {
+                0..=1 => (0b000, hclk),
+                2 => (0b100, hclk / 2),
+                3..=6 => (0b101, hclk / 4),
+                7..=11 => (0b110, hclk / 8),
+                _ => (0b111, hclk / 16),
+            }
+        } else {
+            (0b000, hclk)
         };
         unsafe {
             (*RCC::ptr()).cfgr0.modify(|_, w| w.ppre1().bits(ppre1_bits));
         }
 
         // APB2
-        let (ppre2_bits, pclk2) = match self.pclk2_div {
-            Some(PclkPreScale::Div2) => (0b100, hclk / 2),
-            Some(PclkPreScale::Div4) => (0b101, hclk / 4),
-            Some(PclkPreScale::Div8) => (0b110, hclk / 8),
-            Some(PclkPreScale::Div16) => (0b111, hclk / 16),
-            None => (0b000, hclk),
+        let (ppre2_bits, pclk2) = if self.pclk2_freq.is_some() {
+            match hclk / self.pclk2_freq.unwrap() {
+                0..=1 => (0b000, hclk),
+                2 => (0b100, hclk / 2),
+                3..=6 => (0b101, hclk / 4),
+                7..=11 => (0b110, hclk / 8),
+                _ => (0b111, hclk / 16),
+            }
+        } else {
+            (0b000, hclk)
         };
         unsafe {
             (*RCC::ptr()).cfgr0.modify(|_, w| w.ppre2().bits(ppre2_bits));

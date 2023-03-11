@@ -26,11 +26,8 @@ fn main() -> ! {
     let peripherals = ch32v103::Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
 
-    let clocks = rcc.cfgr.freeze();
-    // let clocks = rcc.cfgr
-    //     .use_pll((48).mhz(), PllClkSrc::UseHsi)
-    //     .hclk_prescale(HclkPreScale::Div4)
-    //     .freeze();
+    // let clocks = rcc.cfgr.freeze();
+    let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::UseHsi).hclk((8).mhz()).freeze();
 
     let gpioa = peripherals.GPIOA.split();
     let pa9 = gpioa.pa9.into_multiplex_push_pull_output();

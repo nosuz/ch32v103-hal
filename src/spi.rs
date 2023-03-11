@@ -80,14 +80,14 @@ impl<SCK, MISO, MOSI> Spi<SPI1, (SCK, MISO, MOSI)> {
             // Set SPI1 to Master mode
             let br_bits = match clocks.pclk2().0 / speed.0 {
                 0 => unreachable!(),
-                1..=2 => 0b000,
-                3..=5 => 0b001,
-                6..=11 => 0b010,
-                12..=23 => 0b011,
-                24..=47 => 0b100,
-                48..=95 => 0b101,
-                96..=191 => 0b110,
-                _ => 0b111,
+                1..=2 => 0b000, // Div2
+                3..=5 => 0b001, // Div4
+                6..=11 => 0b010, //Div8
+                12..=23 => 0b011, // Div16
+                24..=47 => 0b100, // Div32
+                48..=95 => 0b101, // Div64
+                96..=191 => 0b110, // Div128
+                _ => 0b111, // Div256
             };
             (*SPI1::ptr()).ctlr1.modify(|_, w| w.br().bits(br_bits));
 

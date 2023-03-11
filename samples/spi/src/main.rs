@@ -13,7 +13,6 @@ use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
 use ch32v103_hal::delay::*;
 use ch32v103_hal::spi::*;
-use ch32v103_hal::time::*;
 // use embedded_hal::blocking::serial::Write; // Required for bwrite_all
 
 #[entry]
@@ -22,9 +21,11 @@ fn main() -> ! {
     let rcc = peripherals.RCC.constrain();
 
     // let clocks = rcc.cfgr.freeze();
+    // let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::Hsi).hclk((24).mhz()).freeze();
     let clocks = rcc.cfgr
         .use_pll((48).mhz(), PllClkSrc::UseHsi)
-        .hclk_prescale(HclkPreScale::Div4)
+        .hclk((24).mhz())
+        .pclk2((6).mhz())
         .freeze();
 
     let gpioa = peripherals.GPIOA.split();

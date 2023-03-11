@@ -22,7 +22,8 @@ fn main() -> ! {
     // let clocks = rcc.cfgr.freeze();
     let clocks = rcc.cfgr
         .use_pll((48).mhz(), PllClkSrc::UseHsi)
-        .hclk_prescale(HclkPreScale::Div4)
+        .hclk((12).mhz())
+        .pclk2((6).mhz())
         .freeze();
 
     // let gpioa = peripherals.GPIOA.split();
