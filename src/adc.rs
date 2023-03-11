@@ -86,9 +86,10 @@ impl<ADCX> Adc<ADCX> {
             (*ADC::ptr()).rsqr3.modify(|_, w| w.sq1().bits(channel));
             (*ADC::ptr()).rsqr1.modify(|_, w| w.l().bits(0x1));
 
-            // start convertion
+            // start conversion
             (*ADC::ptr()).ctlr2.modify(|_, w| w.adon().set_bit());
-            self.delay.delay_us(self.tconv);
+            // wait conversion
+            while (*ADC::ptr()).statr.read().eoc().bit_is_clear() {}
 
             (*ADC::ptr()).rdatar.read().bits() as u16
         }
