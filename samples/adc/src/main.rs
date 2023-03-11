@@ -42,21 +42,18 @@ fn main() -> ! {
 
     let mut delay = Delay::new(&clocks);
 
-    let adc = Adc::adc(peripherals.ADC);
-    delay.delay_us(1);
-    adc.power_on();
+    let mut adc_in = gpioa.pa0.into_analog_input();
+    let mut adc = Adc::adc(peripherals.ADC, &clocks);
 
     loop {
         led1.set_low().unwrap();
         led2.set_high().unwrap();
 
-        adc.start_conv();
-        delay.delay_us(18);
-        let raw = adc.read_temp();
+        let raw: u16 = adc.read(&mut adc_in).unwrap();
         writeln!(&mut log, "ADC: {}", raw).unwrap();
 
-        let temp = (((raw as f32) * 3.3) / 4095.0 - 1.34) / 4.3 + 25.0;
-        writeln!(&mut log, "Temp:{:.2}C", temp).unwrap();
+        let v = ((raw as f32) * 3.3) / 4095.0;
+        writeln!(&mut log, "{:.2}V", v).unwrap();
 
         led1.set_high().unwrap();
         led2.set_low().unwrap();
