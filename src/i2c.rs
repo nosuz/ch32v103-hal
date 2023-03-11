@@ -28,19 +28,19 @@ pub enum I2cMode {
     Fast,
 }
 
-pub unsafe trait SclPin<I2C> {
+pub trait SclPin<I2C> {
     fn remap(&self) -> bool;
 }
-pub unsafe trait SdaPin<I2C> {
+pub trait SdaPin<I2C> {
     fn remap(&self) -> bool;
 }
 
-unsafe impl SclPin<I2C1> for PB6<AltOutput<OpenDrain>> {
+impl SclPin<I2C1> for PB6<AltOutput<OpenDrain>> {
     fn remap(&self) -> bool {
         false
     }
 }
-unsafe impl SdaPin<I2C1> for PB7<AltOutput<OpenDrain>> {
+impl SdaPin<I2C1> for PB7<AltOutput<OpenDrain>> {
     fn remap(&self) -> bool {
         false
     }

@@ -37,30 +37,30 @@ pub enum Error {
     Unkown,
 }
 
-pub unsafe trait SckPin<T> {
+pub trait SckPin<T> {
     fn remap(&self) -> bool;
 }
 
-pub unsafe trait MisoPin<T> {
+pub trait MisoPin<T> {
     fn remap(&self) -> bool;
 }
-pub unsafe trait MosiPin<T> {
+pub trait MosiPin<T> {
     fn remap(&self) -> bool;
 }
 
-unsafe impl SckPin<SPI1> for PA5<AltOutput<PushPull>> {
+impl SckPin<SPI1> for PA5<AltOutput<PushPull>> {
     fn remap(&self) -> bool {
         false
     }
 }
 
-unsafe impl MisoPin<SPI1> for PA6<Input<Floating>> {
+impl MisoPin<SPI1> for PA6<Input<Floating>> {
     fn remap(&self) -> bool {
         false
     }
 }
 
-unsafe impl MosiPin<SPI1> for PA7<AltOutput<PushPull>> {
+impl MosiPin<SPI1> for PA7<AltOutput<PushPull>> {
     fn remap(&self) -> bool {
         false
     }

@@ -35,42 +35,41 @@ pub struct Tx<USART> {
     _usart: PhantomData<USART>,
 }
 
-pub unsafe trait TxPin<USART> {
+pub trait TxPin<USART> {
     fn remap(&self) -> bool;
 }
-pub unsafe trait RxPin<USART> {
+pub trait RxPin<USART> {
     fn remap(&self) -> bool;
 }
 
-// why unsafe is required?
-unsafe impl TxPin<USART1> for PA9<AltOutput<PushPull>> {
+impl TxPin<USART1> for PA9<AltOutput<PushPull>> {
     fn remap(&self) -> bool {
         false
     }
 }
-unsafe impl RxPin<USART1> for PA10<Input<Floating>> {
+impl RxPin<USART1> for PA10<Input<Floating>> {
     fn remap(&self) -> bool {
         false
     }
 }
-unsafe impl RxPin<USART1> for PA10<Input<PullUp>> {
+impl RxPin<USART1> for PA10<Input<PullUp>> {
     fn remap(&self) -> bool {
         false
     }
 }
 
 // Remap
-unsafe impl TxPin<USART1> for PB6<AltOutput<PushPull>> {
+impl TxPin<USART1> for PB6<AltOutput<PushPull>> {
     fn remap(&self) -> bool {
         true
     }
 }
-unsafe impl RxPin<USART1> for PB7<Input<Floating>> {
+impl RxPin<USART1> for PB7<Input<Floating>> {
     fn remap(&self) -> bool {
         true
     }
 }
-unsafe impl RxPin<USART1> for PB7<Input<PullUp>> {
+impl RxPin<USART1> for PB7<Input<PullUp>> {
     fn remap(&self) -> bool {
         true
     }
