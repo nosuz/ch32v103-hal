@@ -66,7 +66,7 @@ impl<SCK, MISO, MOSI> Spi<SPI1, (SCK, MISO, MOSI)> {
     pub fn spi1(
         spi: SPI1,
         pins: (SCK, MISO, MOSI),
-        mode: SpiMode,
+        mode: spi::Mode,
         speed: Hertz,
         clocks: &Clocks
     )
@@ -91,18 +91,21 @@ impl<SCK, MISO, MOSI> Spi<SPI1, (SCK, MISO, MOSI)> {
             };
             (*SPI1::ptr()).ctlr1.modify(|_, w| w.br().bits(br_bits));
 
-            match mode {
-                SpiMode::Mode0 => {
-                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpol().clear_bit().cpha().clear_bit());
+            match mode.polarity {
+                spi::Polarity::IdleLow => {
+                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpol().clear_bit());
                 }
-                SpiMode::Mode1 => {
-                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpol().clear_bit().cpha().set_bit());
+                spi::Polarity::IdleHigh => {
+                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpol().set_bit());
                 }
-                SpiMode::Mode2 => {
-                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpol().set_bit().cpha().clear_bit());
+            }
+
+            match mode.phase {
+                spi::Phase::CaptureOnFirstTransition => {
+                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpha().clear_bit());
                 }
-                SpiMode::Mode3 => {
-                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpol().set_bit().cpha().set_bit());
+                spi::Phase::CaptureOnSecondTransition => {
+                    (*SPI1::ptr()).ctlr1.modify(|_, w| w.cpha().set_bit());
                 }
             }
 

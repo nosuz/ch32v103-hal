@@ -13,8 +13,6 @@ use ch32v103_hal::gpio::*;
 use ch32v103_hal::serial::*;
 use ch32v103_hal::delay::*;
 use ch32v103_hal::spi::*;
-use ch32v103_hal::time::*;
-// use embedded_hal::blocking::serial::Write; // Required for bwrite_all
 
 #[entry]
 fn main() -> ! {
@@ -39,13 +37,7 @@ fn main() -> ! {
     let pa6 = gpioa.pa6.into_floating_input(); // MISO
     let pa7 = gpioa.pa7.into_multiplex_push_pull_output(); // MOSI
 
-    let mut spi = Spi::spi1(
-        peripherals.SPI1,
-        (pa5, pa6, pa7),
-        SpiMode::Mode3,
-        (100).khz(),
-        &clocks
-    );
+    let mut spi = Spi::spi1(peripherals.SPI1, (pa5, pa6, pa7), MODE_3, (100).khz(), &clocks);
 
     // Serial
     let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
