@@ -1,5 +1,5 @@
 // use core::convert::Infallible;
-use ch32v1::ch32v103::RCC;
+use ch32v1::ch32v103::{ RCC, EXTEND };
 use crate::time::*;
 
 // pub struct AHB;
@@ -23,8 +23,8 @@ pub enum Sysclk {
 
 pub enum PllClkSrc {
     Hsi,
-    // TODO: Not supported on ch32v103 PAC
-    // HsiDiv2,
+    // supported in extend_ctr
+    HsiDiv2,
     Hse,
     HseDiv2,
 }
@@ -171,13 +171,12 @@ impl CFGR {
                             (*RCC::ptr()).cfgr0.modify(|_, w| w.pllsrc().clear_bit());
                         }
                     }
-                    // TODO: Not supported on ch32v103 PAC
-                    // Some(PllClkSrc::HsiDiv2) => {
-                    //     pll_base_freq = HSI / 2;
-                    //     unsafe {
-                    //         (*RCC::ptr()).extend_ctr.modify(|_, w| w.hsipre().clear_bit());
-                    //     }
-                    // }
+                    Some(PllClkSrc::HsiDiv2) => {
+                        pll_base_freq = HSI / 2;
+                        unsafe {
+                            (*EXTEND::ptr()).extend_ctr.modify(|_, w| w.hsipre().clear_bit());
+                        }
+                    }
                     Some(PllClkSrc::Hse) => {
                         assert!(self.hse_freq.is_some());
                         pll_base_freq = self.hse_freq.unwrap();

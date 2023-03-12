@@ -19,7 +19,7 @@ fn main() -> ! {
     // let clocks = rcc.cfgr.freeze();
     // 72MHz not worked for me
     // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).freeze();
-    let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).hclk((32).mhz()).freeze();
+    let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::HsiDiv2).hclk((24).mhz()).freeze();
 
     let gpioa = peripherals.GPIOA.split();
     let mut led_r1 = gpioa.pa4.into_push_pull_output();
@@ -38,6 +38,11 @@ fn main() -> ! {
     let mut delay = Delay::new(&clocks);
     led2.set_high().unwrap();
     loop {
+        led_r1.set_high().unwrap();
+        delay.delay_ms(100);
+        led_r1.set_low().unwrap();
+        delay.delay_ms(100);
+
         // gpiob.outdr.modify(|_, w| w.odr0().set_bit());
         led1.set_high().unwrap();
         led3.set_state(PinState::Low).unwrap();
@@ -67,6 +72,6 @@ fn main() -> ! {
         delay.delay_ms(200);
         led2.toggle().unwrap();
 
-        delay.delay_ms(1_000);
+        delay.delay_ms(500);
     }
 }
