@@ -120,6 +120,26 @@
         "kind": "test",
         "isDefault": true
       }
+    },
+    {
+      "label": "make interrupt",
+      "type": "shell",
+      "command": "make",
+      "args": ["-C", "${workspaceFolder}/samples/interrupt"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash interrupt",
+      "type": "shell",
+      "command": "make",
+      "args": ["flash", "-C", "${workspaceFolder}/samples/interrupt"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
     }
   ]
 }
