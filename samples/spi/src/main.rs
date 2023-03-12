@@ -68,7 +68,8 @@ fn main() -> ! {
         pa4.set_low().unwrap();
         spi.write(&[0x48]).unwrap();
         let mut stat: [u8; 1] = [0xff];
-        match spi.transfer(&mut stat) {
+        let result = spi.transfer(&mut stat);
+        match result {
             Ok(_) => {
                 writeln!(&mut log, "STAT:{:02X}", stat[0]).unwrap();
             }
@@ -93,7 +94,9 @@ fn main() -> ! {
             Ok(_) => {}
             Err(_) => {}
         } //dummy
-        match nb::block!(spi.read()) {
+        let result = nb::block!(spi.read());
+        pa4.set_high().unwrap();
+        match result {
             Ok(id) => {
                 writeln!(&mut log, "ID:{:02X}", id).unwrap();
             }
@@ -101,14 +104,15 @@ fn main() -> ! {
                 writeln!(&mut log, "Read ID error").unwrap();
             }
         }
-        pa4.set_high().unwrap();
 
         delay.delay_us(500);
 
         pa4.set_low().unwrap();
         spi.write(&[0x58]).unwrap();
         let mut id: [u8; 1] = [0x00];
-        match spi.transfer(&mut id) {
+        let result = spi.transfer(&mut id);
+        pa4.set_high().unwrap();
+        match result {
             Ok(_) => {
                 writeln!(&mut log, "ID:{:02X}", id[0]).unwrap();
             }
@@ -116,7 +120,6 @@ fn main() -> ! {
                 writeln!(&mut log, "Read ID error").unwrap();
             }
         }
-        pa4.set_high().unwrap();
 
         delay.delay_ms(1);
 
@@ -194,7 +197,9 @@ fn main() -> ! {
         // spi.write(&[0x54]).unwrap(); 0x54 for continuous mode only
         spi.write(&[0x50]).unwrap();
         let mut bytes: [u8; 2] = [0x00, 0x00];
-        match spi.transfer(&mut bytes) {
+        let result = spi.transfer(&mut bytes);
+        pa4.set_high().unwrap();
+        match result {
             Ok(_) => {
                 writeln!(&mut log, "Raw:{:02X}, {:02X}", bytes[0], bytes[1]).unwrap();
                 let temp: u16 = ((bytes[0] as u16) << 8) | (bytes[1] as u16);
@@ -212,14 +217,14 @@ fn main() -> ! {
                 writeln!(&mut log, "Read Temp error").unwrap();
             }
         }
-        pa4.set_high().unwrap();
 
         delay.delay_us(500);
 
         pa4.set_low().unwrap();
         spi.write(&[0x48]).unwrap();
         let mut stat: [u8; 1] = [0xff];
-        match spi.transfer(&mut stat) {
+        let result = spi.transfer(&mut stat);
+        match result {
             Ok(_) => {
                 writeln!(&mut log, "STAT:{:02X}", stat[0]).unwrap();
             }
