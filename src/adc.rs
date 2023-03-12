@@ -116,6 +116,32 @@ impl<ADCX> Adc<ADCX> {
         self.power_down();
         result.into()
     }
+
+    pub fn calibration(&mut self) -> u16 {
+        self.power_up();
+        self.delay.delay_us(10);
+
+        let mut cal = 0_u16;
+        unsafe {
+            // start calibration
+            // NOTE: rstcal does not have set_bit() and clear_bit() but has reset()
+            // REF: https://raw.githubusercontent.com/ch32-rs/ch32-rs-nightlies/main/ch32v1/src/ch32v103/mod.rs
+            // (*ADC::ptr()).ctlr2.modify(|_, w| w.rstcal().set_bit());
+            (*ADC::ptr()).ctlr2.modify(|_, w| w.rstcal().reset());
+            // while (*ADC::ptr()).ctlr2.read().rstcal().bit_is_set() {}
+            while (*ADC::ptr()).ctlr2.read().rstcal().is_resetting() {}
+
+            // (*ADC::ptr()).ctlr2.modify(|_, w| w.cal().set_bit());
+            // while (*ADC::ptr()).ctlr2.read().cal().bit_is_set() {}
+            (*ADC::ptr()).ctlr2.modify(|_, w| w.cal().calibrate());
+            while (*ADC::ptr()).ctlr2.read().cal().is_calibrating() {}
+
+            cal = (*ADC::ptr()).rdatar.read().bits() as u16;
+        }
+
+        self.power_down();
+        cal
+    }
 }
 
 impl<WORD, PIN> OneShot<Adc<ADC>, WORD, PIN>

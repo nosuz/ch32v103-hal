@@ -42,7 +42,11 @@ fn main() -> ! {
     let mut adc_in = gpioa.pa0.into_analog_input();
     let mut adc = Adc::adc(peripherals.ADC, &clocks);
 
+    let cal = adc.calibration();
+
     loop {
+        writeln!(&mut log, "Calb: {:04x}", cal).unwrap();
+
         led1.set_low().unwrap();
         led2.set_high().unwrap();
 
