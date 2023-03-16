@@ -1,6 +1,7 @@
 /* CH32V103R8T6
     CH32V103C8T6 and CH32V103C8U6 have the same memory map.
 */
+/* 1K = 1 KiBi = 1024 bytes */
 MEMORY
 {
     /* Code Flash, 64KB max */

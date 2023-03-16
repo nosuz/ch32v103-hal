@@ -54,3 +54,7 @@ $ cargo build --all-features --release
 
 - [逆引き Rust ライブラリシステム](https://qiita.com/nirasan/items/8804046c43ba07ee8fde)
 - [Specifying path dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html)
+
+## Memory map
+
+- [The Embedonomicon -- Memory layout](https://docs.rust-embedded.org/embedonomicon/memory-layout.html)

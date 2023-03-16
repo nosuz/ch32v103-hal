@@ -10,5 +10,7 @@ embedded-hal = {version = "0.2.7", features = ["unproven"]}
 nb = "1.0.0"
 
 [dependencies.ch32v1]
+path = "../ch32-rs-nightlies/ch32v1"
+
 version = "0.1.6"
 features = ["ch32v103", "critical-section"]
