@@ -13,6 +13,8 @@ use core::arch::asm;
 use ch32v1::ch32v103::Peripherals;
 use ch32v1::ch32v103::{ RCC, TIM1, GPIOA, PFIC };
 use ch32v1::ch32v103::interrupt::Interrupt;
+use ch32v1::ch32v103::__EXTERNAL_INTERRUPTS;
+use ch32v1::interrupt;
 
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
@@ -30,21 +32,21 @@ use ch32v103_hal::delay::*;
 
 // patch is require for ch32v crate
 // https://github.com/ch32-rs/ch32-rs/issues/3
-// interrupt!(TIM1_UP, tim1_up, locals: {tick: bool = false;});
+interrupt!(TIM1_UP, tim1_up, locals: {tick: bool = false;});
 
-// fn tim1_up(locals: &mut TIM1_UP::Locals) {
-//     locals.tick = !locals.tick;
+fn tim1_up(locals: &mut TIM1_UP::Locals) {
+    locals.tick = !locals.tick;
 
-//     // unsafe {
-//     //     (*TIM1::ptr()).intfr.modify(|_, w| w.uif().clear_bit());
-//     //     // if locals.tick {
-//     //     //     (*GPIOA::ptr()).bshr.write(|w| w.bs5().set_bit());
-//     //     // } else {
-//     //     //     (*GPIOA::ptr()).bshr.write(|w| w.br5().set_bit());
-//     //     // }
-//     //     riscv::interrupt::enable();
-//     // }
-// }
+    unsafe {
+        (*TIM1::ptr()).intfr.modify(|_, w| w.uif().clear_bit());
+        if locals.tick {
+            (*GPIOA::ptr()).bshr.write(|w| w.bs5().set_bit());
+        } else {
+            (*GPIOA::ptr()).bshr.write(|w| w.br5().set_bit());
+        }
+        // riscv::interrupt::enable();
+    }
+}
 
 // interrupt!(TIM1_UP, tim1_up);
 // fn tim1_up() {
@@ -108,7 +110,7 @@ fn setup_timer1(clocks: &Clocks) {
 
         let prescale = (clocks.hclk().0 / 1_000_000) * 100 - 1; // count for 0.1ms
         (*TIM1::ptr()).psc.write(|w| w.bits(prescale as u16));
-        let down_count: u16 = 70 * 10 - 1; // 0.1ms * 10 * 70 = 70ms
+        let down_count: u16 = 90 * 10 - 1; // 0.1ms * 10 * 90 = 90ms
         (*TIM1::ptr()).cnt.write(|w| w.bits(down_count));
         (*TIM1::ptr()).atrlr.write(|w| w.bits(down_count));
         (*TIM1::ptr()).ctlr1.modify(|_, w| w.arpe().set_bit().cen().set_bit());
@@ -127,14 +129,9 @@ fn setup_timer1(clocks: &Clocks) {
 #[no_mangle]
 fn _interrupt_dispatcher() {
     unsafe {
-        riscv::interrupt::free(|| {
-            (*TIM1::ptr()).intfr.modify(|_, w| w.uif().clear_bit());
-            (*GPIOA::ptr()).bshr.write(|w| w.br5().set_bit());
-            for _ in 0..4_000 {
-                riscv::asm::nop();
-            }
-            (*GPIOA::ptr()).bshr.write(|w| w.bs5().set_bit());
-        });
+        let int_index = Interrupt::TIM1_UP as usize;
+        let handler = __EXTERNAL_INTERRUPTS[int_index]._handler;
+        handler();
     }
 }
 
