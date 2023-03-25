@@ -9,3 +9,5 @@ pub mod i2c;
 pub mod adc;
 pub mod time;
 pub mod delay;
+#[cfg(feature = "interrupt")]
+pub mod interrupt;

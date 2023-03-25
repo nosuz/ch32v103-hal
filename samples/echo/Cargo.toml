@@ -14,6 +14,8 @@ nb = "1.0.0"
 
 [dependencies.ch32v1]
 # path = "../ch32-rs/ch32v1"
+git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
+
 version = "0.1.6"
 features = [
     "ch32v103",

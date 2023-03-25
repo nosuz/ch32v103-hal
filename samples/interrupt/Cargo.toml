@@ -13,7 +13,9 @@ panic-halt = "0.2.0"
 critical-section = "1.1.1"
 
 [dependencies.ch32v1]
-path = "../../../ch32-rs-nightlies/ch32v1"
+# path = "../../../ch32-rs-nightlies/ch32v1"
+git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
+
 version = "0.1.6"
 features = [
     "ch32v103",
@@ -23,6 +25,7 @@ features = [
 
 [dependencies.ch32v103_hal]
 path = "../.."
+features = ["interrupt"]
 
 [profile.release]
 # Minimize binary size.

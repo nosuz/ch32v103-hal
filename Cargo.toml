@@ -6,11 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+riscv = { version = "0.10.1", features = ["critical-section-single-hart"] }
 embedded-hal = {version = "0.2.7", features = ["unproven"]}
 nb = "1.0.0"
 
 [dependencies.ch32v1]
 # path = "../ch32-rs-nightlies/ch32v1"
+git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
 
 version = "0.1.6"
-features = ["ch32v103", "critical-section"]
+features = ["ch32v103", "critical-section", "rt"]
+
+[features]
+default = []
+interrupt = []
