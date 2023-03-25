@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-// use core::cell::RefCell;
-// use riscv::interrupt::Mutex;
+use core::cell::RefCell;
+use critical_section::Mutex;
 
 // provide implementation for critical-section
 use riscv_rt::{ entry };
@@ -20,45 +20,47 @@ use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::delay::*;
-// use ch32v103_hal::gpio::gpioa::PA5;
+use ch32v103_hal::gpio::gpioa::PA5;
 
 // STM32F4 Embedded Rust at the HAL: GPIO Interrupts
 // https://dev.to/apollolabsbin/stm32f4-embedded-rust-at-the-hal-gpio-interrupts-e5
 // STM32F4 Embedded Rust at the HAL: Timer Interrupts
 // https://apollolabsblog.hashnode.dev/stm32f4-embedded-rust-at-the-hal-timer-interrupts
 
-// type LedPin = PA5<Output<PushPull>>;
-// static G_LED: Mutex<RefCell<Option<LedPin>>> = Mutex::new(RefCell::new(None));
+type LedPin = PA5<Output<PushPull>>;
+static LED: Mutex<RefCell<Option<LedPin>>> = Mutex::new(RefCell::new(None));
 
 // patch is require for ch32v crate
 // https://github.com/ch32-rs/ch32-rs/issues/3
-interrupt!(TIM1_UP, tim1_up, locals: {tick: bool = false;});
 
-fn tim1_up(locals: &mut TIM1_UP::Locals) {
-    locals.tick = !locals.tick;
+// interrupt!(TIM1_UP, tim1_up, locals: {tick: bool = false;});
+// fn tim1_up(locals: &mut TIM1_UP::Locals) {
+//     unsafe {
+//         (*TIM1::ptr()).intfr.modify(|_, w| w.uif().clear_bit());
+//     }
 
+//     locals.tick = !locals.tick;
+//     critical_section::with(|cs| {
+//         let mut led = LED.borrow(cs).borrow_mut();
+//         if locals.tick {
+//             led.as_mut().unwrap().set_high().unwrap();
+//         } else {
+//             led.as_mut().unwrap().set_low().unwrap();
+//         }
+//     });
+// }
+
+interrupt!(TIM1_UP, tim1_up);
+fn tim1_up() {
     unsafe {
         (*TIM1::ptr()).intfr.modify(|_, w| w.uif().clear_bit());
-        if locals.tick {
-            (*GPIOA::ptr()).bshr.write(|w| w.bs5().set_bit());
-        } else {
-            (*GPIOA::ptr()).bshr.write(|w| w.br5().set_bit());
-        }
-        // riscv::interrupt::enable();
     }
-}
 
-// interrupt!(TIM1_UP, tim1_up);
-// fn tim1_up() {
-//     unsafe {
-//         asm!("mret");
-//         // (*TIM1::ptr()).intfr.modify(|_, w| w.uif().clear_bit());
-//         // (*GPIOA::ptr()).bshr.write(|w| w.bs5().set_bit());
-//         // for _ in 0..11 {
-//         //     riscv::asm::nop();
-//         // }
-//     }
-// }
+    critical_section::with(|cs| {
+        let mut led = LED.borrow(cs).borrow_mut();
+        led.as_mut().unwrap().toggle().unwrap();
+    });
+}
 
 // set interrupts vector
 #[no_mangle]
@@ -95,6 +97,11 @@ fn main() -> ! {
     delay.delay_ms(5);
     io2.set_high().unwrap();
     delay.delay_ms(5);
+
+    // https://docs.rs/critical-section/latest/critical_section/#
+    critical_section::with(|cs| {
+        LED.borrow(cs).replace(Some(io2));
+    });
 
     setup_timer1(&clocks);
 
