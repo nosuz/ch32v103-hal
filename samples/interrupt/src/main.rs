@@ -136,9 +136,29 @@ fn setup_timer1(clocks: &Clocks) {
 #[no_mangle]
 fn _interrupt_dispatcher() {
     unsafe {
-        let int_index = Interrupt::TIM1_UP as usize;
-        let handler = __EXTERNAL_INTERRUPTS[int_index]._handler;
-        handler();
+        let iactr1 = ((*PFIC::ptr()).iactr1.read().bits() as u32) & 0xffff_5000;
+        if iactr1 > 0 {
+            let mut bit_mask = 1 << 12;
+            for index in 12..32 {
+                if iactr1 & bit_mask > 0 {
+                    let handler = __EXTERNAL_INTERRUPTS[index]._handler;
+                    handler();
+                }
+                bit_mask = bit_mask << 1;
+            }
+        }
+
+        let iactr2 = (*PFIC::ptr()).iactr2.read().bits() as u32;
+        if iactr2 > 0 {
+            let mut bit_mask = 1;
+            for index in 0..28 {
+                if iactr2 & bit_mask > 0 {
+                    let handler = __EXTERNAL_INTERRUPTS[index + 32]._handler;
+                    handler();
+                }
+                bit_mask = bit_mask << 1;
+            }
+        }
     }
 }
 
