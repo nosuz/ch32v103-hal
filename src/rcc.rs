@@ -253,11 +253,20 @@ impl CFGR {
         unsafe {
             // supply clocks to th power interface module.
             (*RCC::ptr()).apb1pcenr.modify(|_, w| w.pwren().set_bit());
-            // enabel edit backup area
+            // enable editing backup area
             (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().set_bit());
         }
 
-        match self.rtc_source {
+        let rtc_clk: Option<Hertz> = match self.rtc_source {
+            Some(Rtc::Lsi) => {
+                unsafe {
+                    (*RCC::ptr()).rstsckr.modify(|_, w| w.lsion().set_bit());
+                    while !(*RCC::ptr()).rstsckr.read().lsirdy().bit_is_set() {}
+
+                    (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b10));
+                }
+                Some(LSI.hz())
+            }
             Some(Rtc::Lse) => {
                 if self.lse_bypass {
                     unsafe {
@@ -267,26 +276,7 @@ impl CFGR {
                 unsafe {
                     (*RCC::ptr()).bdctlr.modify(|_, w| w.lseon().set_bit());
                     while !(*RCC::ptr()).bdctlr.read().lserdy().bit_is_set() {}
-                }
-            }
-            Some(Rtc::Lsi) => {
-                unsafe {
-                    (*RCC::ptr()).rstsckr.modify(|_, w| w.lsion().set_bit());
-                    while !(*RCC::ptr()).rstsckr.read().lsirdy().bit_is_set() {}
-                }
-            }
-            _ => {}
-        }
 
-        let rtc_clk: Option<Hertz> = match self.rtc_source {
-            Some(Rtc::Lsi) => {
-                unsafe {
-                    (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b10));
-                }
-                Some(LSI.hz())
-            }
-            Some(Rtc::Lse) => {
-                unsafe {
                     (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b01));
                 }
                 Some(self.lse_freq.unwrap().hz())
@@ -308,25 +298,32 @@ impl CFGR {
             }
         };
 
-        // prescale = freq  - 1 for 1s
-        // RCT clock 1ms.
-        // prescale = ((freq + 500) / 1000) - 1
         if rtc_clk.is_some() {
             // Setup RTC
+            // make 1s
+            // let prescale: u32 = rtc_clk.unwrap().0 - 1;
+            // make 1ms
             let prescale: u32 = (rtc_clk.unwrap().0 + 500) / 1000 - 1;
             unsafe {
+                // start RTC before setting values.
+                // Can't get the RTC to work
+                // https://stackoverflow.com/questions/16468978/cant-get-the-rtc-to-work
+
+                // start RTC
+                (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcen().set_bit());
+
                 // wait RSF to ensure register is synced.
+                (*RTC::ptr()).ctlrl.modify(|_, w| w.rsf().clear_bit());
                 while !(*RTC::ptr()).ctlrl.read().rsf().bit_is_set() {}
+
                 while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
                 (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().set_bit());
                 // whitout seting PSCRH, PSC[19:16] will be set to 1.
-                (*RTC::ptr()).pscrh.write(|w| w.bits(0x0));
-                (*RTC::ptr()).pscrl.write(|w| w.bits(prescale as u16));
+                (*RTC::ptr()).pscrh.write(|w| w.bits((prescale >> 16) as u16));
+                (*RTC::ptr()).pscrl.write(|w| w.bits((prescale & 0xffff) as u16));
                 (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().clear_bit());
                 // Wait write completed
                 while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
-                // start RTC
-                (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcen().set_bit());
             }
         }
 

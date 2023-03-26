@@ -21,6 +21,9 @@ use ch32v103_hal::delay::*;
 use ch32v103_hal::interrupt;
 use ch32v103_hal::gpio::gpioa::PA5;
 
+// use core::fmt::Write; // required for writeln!
+// use ch32v103_hal::serial::*;
+
 // STM32F4 Embedded Rust at the HAL: GPIO Interrupts
 // https://dev.to/apollolabsbin/stm32f4-embedded-rust-at-the-hal-gpio-interrupts-e5
 // STM32F4 Embedded Rust at the HAL: Timer Interrupts
@@ -66,7 +69,8 @@ fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
 
-    let clocks = rcc.cfgr.freeze();
+    // let clocks = rcc.cfgr.freeze();
+    let clocks = rcc.cfgr.use_lsi().freeze();
     // 72MHz not worked for me
     // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).freeze();
     // let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::HsiDiv2).hclk((24).mhz()).freeze();
@@ -95,8 +99,21 @@ fn main() -> ! {
 
     setup_timer1(&clocks);
 
+    // Serial
+    // let pa9 = gpioa.pa9.into_multiplex_push_pull_output();
+    // let pa10 = gpioa.pa10.into_floating_input();
+    //  remapped ports
+    // let pb6 = gpiob.pb6.into_multiplex_push_pull_output();
+    // let pb7 = gpiob.pb7.into_floating_input();
+
+    // let usart = Serial::usart1(peripherals.USART1, (pa9, pa10), (115200).bps(), &clocks);
+    // let (tx, _) = usart.split();
+    // let mut log = SerialWriter::new(tx);
+
+    io1.set_low().unwrap();
     loop {
-        delay.delay_ms(50);
+        // writeln!(&mut log, "START").unwrap();
+        delay.sleep_ms(17);
         io1.toggle().unwrap();
     }
 }
