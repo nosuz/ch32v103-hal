@@ -117,7 +117,7 @@ fn setup_timer1(clocks: &Clocks) {
         // (*PFIC::ptr()).iprr2.write(|w| w.bits(0b1 << ((Interrupt::TIM1_UP as u32) - 32)));
 
         // enable interrupt on Update. All 3 lines are require to enable correct interrupt.
-        (*PFIC::ptr()).ienr2.write(|w| w.bits(0b1 << ((Interrupt::TIM1_UP as u32) - 32)));
+        (*PFIC::ptr()).ienr2.modify(|_, w| w.bits(0b1 << ((Interrupt::TIM1_UP as u32) - 32)));
         (*TIM1::ptr()).dmaintenr.modify(|_, w| w.uie().set_bit());
         riscv::interrupt::enable();
     }
