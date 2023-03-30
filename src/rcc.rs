@@ -1,5 +1,5 @@
 // use core::convert::Infallible;
-use ch32v1::ch32v103::{ RCC, EXTEND };
+use ch32v1::ch32v103::{ RCC, EXTEND, RTC, PWR };
 use crate::time::*;
 
 // pub struct AHB;
@@ -14,8 +14,9 @@ pub struct Rcc {
 }
 
 const HSI: u32 = 8_000_000; // Hz
+const LSI: u32 = 40_000; // Hz
 
-pub enum Sysclk {
+enum Sysclk {
     Hsi,
     Hse,
     Pll,
@@ -29,6 +30,12 @@ pub enum PllClkSrc {
     HseDiv2,
 }
 
+enum Rtc {
+    Lsi,
+    Lse,
+    HseDiv128,
+}
+
 // Clock configuration
 pub struct CFGR {
     hse_freq: Option<u32>,
@@ -40,6 +47,9 @@ pub struct CFGR {
     hclk_freq: Option<u32>,
     pclk1_freq: Option<u32>,
     pclk2_freq: Option<u32>,
+    lse_freq: Option<u32>,
+    lse_bypass: bool,
+    rtc_source: Option<Rtc>,
 }
 
 pub struct Clocks {
@@ -47,6 +57,7 @@ pub struct Clocks {
     hclk: Hertz,
     pclk1: Hertz,
     pclk2: Hertz,
+    rtc_clk: Option<Hertz>,
 }
 
 pub trait RccExt {
@@ -77,17 +88,15 @@ impl RccExt for RCC {
                 hclk_freq: None,
                 pclk1_freq: None,
                 pclk2_freq: None,
+                lse_freq: None,
+                lse_bypass: false,
+                rtc_source: None,
             },
         }
     }
 }
 
 impl CFGR {
-    pub fn hse_freq(mut self, freq: Hertz) -> Self {
-        self.hse_freq = Some(freq.0);
-        self
-    }
-
     pub fn bypass_hse_oscillator(mut self) -> Self {
         self.hse_bypass = true;
         self
@@ -98,8 +107,9 @@ impl CFGR {
         self
     }
 
-    pub fn use_hse(mut self) -> Self {
+    pub fn use_hse(mut self, freq: Hertz) -> Self {
         self.sysclk_source = Some(Sysclk::Hse);
+        self.hse_freq = Some(freq.0);
         self
     }
 
@@ -126,6 +136,22 @@ impl CFGR {
         self
     }
 
+    pub fn bypass_lse_oscillator(mut self) -> Self {
+        self.lse_bypass = true;
+        self
+    }
+
+    pub fn use_lsi(mut self) -> Self {
+        self.rtc_source = Some(Rtc::Lsi);
+        self
+    }
+
+    pub fn use_lse(mut self, freq: Hertz) -> Self {
+        self.rtc_source = Some(Rtc::Lse);
+        self.lse_freq = Some(freq.0);
+        self
+    }
+
     pub fn freeze(mut self) -> Clocks {
         if self.hse_freq.is_some() {
             // check HSE range
@@ -148,6 +174,7 @@ impl CFGR {
             }
 
             // setup HSE
+        } else {
         }
 
         match self.sysclk_source {
@@ -222,6 +249,99 @@ impl CFGR {
             }
         }
 
+        // Setup RTC clock
+        unsafe {
+            // supply clocks to th power interface module.
+            (*RCC::ptr()).apb1pcenr.modify(|_, w| w.pwren().set_bit());
+            // enabel edit backup area
+            (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().set_bit());
+        }
+
+        match self.rtc_source {
+            Some(Rtc::Lse) => {
+                if self.lse_bypass {
+                    unsafe {
+                        (*RCC::ptr()).bdctlr.modify(|_, w| w.lsebyp().set_bit());
+                    }
+                }
+                unsafe {
+                    (*RCC::ptr()).bdctlr.modify(|_, w| w.lseon().set_bit());
+                    while !(*RCC::ptr()).bdctlr.read().lserdy().bit_is_set() {}
+                }
+            }
+            Some(Rtc::Lsi) => {
+                unsafe {
+                    (*RCC::ptr()).rstsckr.modify(|_, w| w.lsion().set_bit());
+                    while !(*RCC::ptr()).rstsckr.read().lsirdy().bit_is_set() {}
+                }
+            }
+            _ => {}
+        }
+
+        let rtc_clk: Option<Hertz> = match self.rtc_source {
+            Some(Rtc::Lsi) => {
+                unsafe {
+                    (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b10));
+                }
+                Some(LSI.hz())
+            }
+            Some(Rtc::Lse) => {
+                unsafe {
+                    (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b01));
+                }
+                Some(self.lse_freq.unwrap().hz())
+            }
+            Some(Rtc::HseDiv128) => {
+                // TODO: Hse need to on if not using HSE as sysclk source.
+                unsafe {
+                    (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b11));
+                }
+                // TODO: set HSE / 128
+                None
+            }
+            None => {
+                // RTC off
+                unsafe {
+                    (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcsel().bits(0b00));
+                }
+                None
+            }
+        };
+
+        // prescale = freq  - 1 for 1s
+        // RCT clock 1ms.
+        // prescale = ((freq + 500) / 1000) - 1
+        if rtc_clk.is_some() {
+            // Setup RTC
+            let prescale: u32 = (rtc_clk.unwrap().0 + 500) / 1000 - 1;
+            unsafe {
+                // wait RSF to ensure register is synced.
+                while !(*RTC::ptr()).ctlrl.read().rsf().bit_is_set() {}
+                while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
+                (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().set_bit());
+                // whitout seting PSCRH, PSC[19:16] will be set to 1.
+                (*RTC::ptr()).pscrh.write(|w| w.bits(0x0));
+                (*RTC::ptr()).pscrl.write(|w| w.bits(prescale as u16));
+                (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().clear_bit());
+                // Wait write completed
+                while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
+                // start RTC
+                (*RCC::ptr()).bdctlr.modify(|_, w| w.rtcen().set_bit());
+            }
+        }
+
+        unsafe {
+            // disable edit backup area
+            (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().clear_bit());
+        }
+
+        if rtc_clk.is_none() {
+            // stop clocks to PWR if no RTC clock source.
+            unsafe {
+                (*RCC::ptr()).apb1pcenr.modify(|_, w| w.pwren().clear_bit());
+            }
+        }
+
         let sysclk = self.sysclk.unwrap();
 
         let (hpre_bits, hclk) = if self.hclk_freq.is_some() {
@@ -280,6 +400,7 @@ impl CFGR {
             hclk: hclk.hz(),
             pclk1: pclk1.hz(),
             pclk2: pclk2.hz(),
+            rtc_clk: rtc_clk,
         }
     }
 }
@@ -299,5 +420,9 @@ impl Clocks {
 
     pub fn pclk2(&self) -> Hertz {
         self.pclk2
+    }
+
+    pub fn rtc_clk(&self) -> Option<Hertz> {
+        self.rtc_clk
     }
 }
