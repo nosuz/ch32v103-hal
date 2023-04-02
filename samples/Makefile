@@ -1,4 +1,4 @@
-all: blinky_dir hello_dir echo_dir spi_dir i2c_dir adc_dir interrupt_dir
+all: blinky_dir hello_dir echo_dir spi_dir i2c_dir adc_dir input_status interrupt_dir
 
 blinky_dir:
 	$(MAKE) -C blinky
@@ -17,6 +17,9 @@ i2c_dir:
 
 adc_dir:
 	$(MAKE) -C adc
+
+input_status:
+	$(MAKE) -C input-status
 
 interrupt_dir:
 	$(MAKE) -C interrupt
