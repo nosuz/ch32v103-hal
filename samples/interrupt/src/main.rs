@@ -19,7 +19,7 @@ use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::delay::*;
 use ch32v103_hal::interrupt;
-use ch32v103_hal::gpio::gpioa::PA5;
+use ch32v103_hal::gpio::gpiob::PB15;
 
 // use core::fmt::Write; // required for writeln!
 // use ch32v103_hal::serial::*;
@@ -29,7 +29,7 @@ use ch32v103_hal::gpio::gpioa::PA5;
 // STM32F4 Embedded Rust at the HAL: Timer Interrupts
 // https://apollolabsblog.hashnode.dev/stm32f4-embedded-rust-at-the-hal-timer-interrupts
 
-type LedPin = PA5<Output<PushPull>>;
+type LedPin = PB15<Output<PushPull>>;
 static LED: Mutex<RefCell<Option<LedPin>>> = Mutex::new(RefCell::new(None));
 
 // patch is require for ch32v crate
@@ -75,26 +75,30 @@ fn main() -> ! {
     // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).freeze();
     // let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::HsiDiv2).hclk((24).mhz()).freeze();
 
-    let gpioa = peripherals.GPIOA.split();
-    let mut io1 = gpioa.pa4.into_push_pull_output();
-    let mut io2 = gpioa.pa5.into_push_pull_output();
+    // let gpioa = peripherals.GPIOA.split();
+    // let mut io1 = gpioa.pa4.into_push_pull_output();
+    // let mut io2 = gpioa.pa5.into_push_pull_output();
+
+    let gpiob = peripherals.GPIOB.split();
+    let mut led1 = gpiob.pb2.into_push_pull_output();
+    let mut led2 = gpiob.pb15.into_push_pull_output();
 
     let mut delay = Delay::new(&clocks);
 
-    io1.set_low().unwrap();
+    // io1.set_low().unwrap();
 
-    io2.set_low().unwrap();
-    delay.delay_ms(5);
-    io2.set_high().unwrap();
-    delay.delay_ms(5);
-    io2.set_low().unwrap();
-    delay.delay_ms(5);
-    io2.set_high().unwrap();
-    delay.delay_ms(5);
+    // io2.set_low().unwrap();
+    // delay.delay_ms(5);
+    // io2.set_high().unwrap();
+    // delay.delay_ms(5);
+    // io2.set_low().unwrap();
+    // delay.delay_ms(5);
+    // io2.set_high().unwrap();
+    // delay.delay_ms(5);
 
     // https://docs.rs/critical-section/latest/critical_section/#
     critical_section::with(|cs| {
-        LED.borrow(cs).replace(Some(io2));
+        LED.borrow(cs).replace(Some(led2));
     });
 
     setup_timer1(&clocks);
@@ -110,11 +114,11 @@ fn main() -> ! {
     // let (tx, _) = usart.split();
     // let mut log = SerialWriter::new(tx);
 
-    io1.set_low().unwrap();
+    led1.set_low().unwrap();
     loop {
         // writeln!(&mut log, "START").unwrap();
-        delay.sleep_ms(17);
-        io1.toggle().unwrap();
+        delay.sleep_ms(500);
+        led1.toggle().unwrap();
     }
 }
 
@@ -124,7 +128,7 @@ fn setup_timer1(clocks: &Clocks) {
 
         let prescale = (clocks.hclk().0 / 1_000_000) * 100 - 1; // count for 0.1ms
         (*TIM1::ptr()).psc.write(|w| w.bits(prescale as u16));
-        let down_count: u16 = 90 * 10 - 1; // 0.1ms * 10 * 90 = 90ms
+        let down_count: u16 = 400 * 10 - 1; // 0.1ms * 10 * 90 = 90ms
         (*TIM1::ptr()).cnt.write(|w| w.bits(down_count));
         (*TIM1::ptr()).atrlr.write(|w| w.bits(down_count));
         (*TIM1::ptr()).ctlr1.modify(|_, w| w.arpe().set_bit().cen().set_bit());
