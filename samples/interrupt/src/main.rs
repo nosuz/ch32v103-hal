@@ -5,7 +5,7 @@ use core::cell::RefCell;
 use critical_section::Mutex;
 
 // provide implementation for critical-section
-use riscv_rt::{ entry };
+use ch32v103_rt::{ entry };
 use panic_halt as _;
 
 // use ch32v1::ch32v103; // PAC for CH32V103
@@ -69,32 +69,22 @@ fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
 
-    // let clocks = rcc.cfgr.freeze();
     let clocks = rcc.cfgr.use_lsi().freeze();
     // 72MHz not worked for me
-    // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).freeze();
-    // let clocks = rcc.cfgr.use_pll((48).mhz(), PllClkSrc::HsiDiv2).hclk((24).mhz()).freeze();
+    // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).use_lsi().freeze();
+    // let clocks = rcc.cfgr
+    //     .use_pll((48).mhz(), PllClkSrc::HsiDiv2)
+    //     .hclk((24).mhz())
+    //     .use_lsi()
+    //     .freeze();
 
     // let gpioa = peripherals.GPIOA.split();
-    // let mut io1 = gpioa.pa4.into_push_pull_output();
-    // let mut io2 = gpioa.pa5.into_push_pull_output();
 
     let gpiob = peripherals.GPIOB.split();
     let mut led1 = gpiob.pb2.into_push_pull_output();
-    let mut led2 = gpiob.pb15.into_push_pull_output();
+    let led2 = gpiob.pb15.into_push_pull_output();
 
     let mut delay = Delay::new(&clocks);
-
-    // io1.set_low().unwrap();
-
-    // io2.set_low().unwrap();
-    // delay.delay_ms(5);
-    // io2.set_high().unwrap();
-    // delay.delay_ms(5);
-    // io2.set_low().unwrap();
-    // delay.delay_ms(5);
-    // io2.set_high().unwrap();
-    // delay.delay_ms(5);
 
     // https://docs.rs/critical-section/latest/critical_section/#
     critical_section::with(|cs| {
@@ -115,11 +105,16 @@ fn main() -> ! {
     // let mut log = SerialWriter::new(tx);
 
     led1.set_low().unwrap();
-    loop {
+    for _ in 0..3 {
         // writeln!(&mut log, "START").unwrap();
-        delay.sleep_ms(500);
+        delay.sleep_ms(1000);
+        led1.toggle().unwrap();
+        delay.stop_ms(1000);
         led1.toggle().unwrap();
     }
+    //  standby nad restart
+    delay.standby_ms(3000);
+    unreachable!();
 }
 
 fn setup_timer1(clocks: &Clocks) {
@@ -128,7 +123,7 @@ fn setup_timer1(clocks: &Clocks) {
 
         let prescale = (clocks.hclk().0 / 1_000_000) * 100 - 1; // count for 0.1ms
         (*TIM1::ptr()).psc.write(|w| w.bits(prescale as u16));
-        let down_count: u16 = 400 * 10 - 1; // 0.1ms * 10 * 90 = 90ms
+        let down_count: u16 = 100 * 10 - 1; // 0.1ms * 10 * 100 = 100ms
         (*TIM1::ptr()).cnt.write(|w| w.bits(down_count));
         (*TIM1::ptr()).atrlr.write(|w| w.bits(down_count));
         (*TIM1::ptr()).ctlr1.modify(|_, w| w.arpe().set_bit().cen().set_bit());

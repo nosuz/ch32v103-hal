@@ -72,6 +72,86 @@ impl Delay {
     }
 
     #[cfg(feature = "interrupt")]
+    fn do_sleep(&self) {
+        unsafe {
+            (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().clear_bit());
+            (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit());
+            // (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit().wfitowfe().set_bit());
+            core::ptr::write_volatile(&mut TIME_UP, false);
+            while !core::ptr::read_volatile(&TIME_UP) {
+                asm!("wfi");
+            }
+        }
+    }
+
+    #[cfg(feature = "interrupt")]
+    fn do_stop(&self) {
+        unsafe {
+            (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().clear_bit());
+            (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().set_bit());
+            // (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit().wfitowfe().set_bit());
+            core::ptr::write_volatile(&mut TIME_UP, false);
+            while !core::ptr::read_volatile(&TIME_UP) {
+                asm!("wfi");
+            }
+        }
+    }
+
+    #[cfg(feature = "interrupt")]
+    fn do_standby(&self) {
+        unsafe {
+            (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().set_bit());
+            (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().set_bit());
+            // (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit().wfitowfe().set_bit());
+            asm!("wfi");
+        }
+    }
+
+    #[cfg(feature = "interrupt")]
+    fn setup_rtc(&self, duration: u32) {
+        unsafe {
+            // what will happen if reading RTC_L just before overflowed to RTC_H
+            // wait next update
+            (*RTC::ptr()).ctlrl.modify(|_, w| w.secf().clear_bit());
+            while (*RTC::ptr()).ctlrl.read().secf().bit_is_clear() {}
+
+            // get current RTC count
+            let rtc_l = (*RTC::ptr()).cntl.read().bits() as u32;
+            let rtc_h = (*RTC::ptr()).cnth.read().bits() as u32;
+            #[allow(arithmetic_overflow)]
+            let rtc = (rtc_h << 16) | rtc_l;
+
+            let wake_up = rtc + duration - 3; // 3 is magic number to adjust sleep duration.
+            let wake_up_h = (wake_up >> 16) as u16;
+            let wake_up_l = (wake_up & 0xffff) as u16;
+
+            (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().set_bit());
+
+            while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
+            (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().set_bit());
+            // whitout seting PSCRH, PSC[19:16] will be set to 1.
+            (*RTC::ptr()).alrmh.write(|w| w.bits(wake_up_h));
+            (*RTC::ptr()).alrml.write(|w| w.bits(wake_up_l));
+            (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().clear_bit().alrf().clear_bit());
+            // Wait write completed
+            while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
+
+            (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().clear_bit());
+
+            // enable interrupt and get into sleep mode
+            // EXTI17 routed to RTCALARM
+            (*EXTI::ptr()).intenr.modify(|_, w| w.mr17().set_bit());
+            // (*EXTI::ptr()).evenr.modify(|_, w| w.mr17().set_bit());
+            (*EXTI::ptr()).rtenr.modify(|_, w| w.tr17().set_bit());
+
+            (*PFIC::ptr()).ienr2.modify(|_, w| w.bits(0b1 << ((Interrupt::RTCALARM as u32) - 32)));
+            // enable ALARM interrupt
+            (*RTC::ptr()).ctlrh.modify(|_, w| w.alrie().set_bit());
+            riscv::interrupt::enable();
+        }
+    }
+
+    #[cfg(feature = "interrupt")]
     pub fn sleep_ms(&mut self, duration: u32) {
         // sleep specified ms. Max. 2^32ms = about 49 days.
 
@@ -80,56 +160,39 @@ impl Delay {
             self.delay_ms(duration);
             unsafe { core::ptr::write_volatile(&mut TIME_UP, true) }
         } else {
-            unsafe {
-                // what will happen if reading RTC_L just before overflowed to RTC_H
-                // wait next update
-                (*RTC::ptr()).ctlrl.modify(|_, w| w.secf().clear_bit());
-                while (*RTC::ptr()).ctlrl.read().secf().bit_is_clear() {}
+            self.setup_rtc(duration);
+            self.do_sleep();
+        }
+    }
 
-                // get current RTC count
-                let rtc_l = (*RTC::ptr()).cntl.read().bits() as u32;
-                let rtc_h = (*RTC::ptr()).cnth.read().bits() as u32;
-                #[allow(arithmetic_overflow)]
-                let rtc = (rtc_h << 16) | rtc_l;
+    #[cfg(feature = "interrupt")]
+    pub fn stop_ms(&mut self, duration: u32) {
+        // stop specified ms. Max. 2^32ms = about 49 days.
 
-                let wake_up = rtc + duration - 3; // 3 is magic number to adjust sleep duration.
-                let wake_up_h = (wake_up >> 16) as u16;
-                let wake_up_l = (wake_up & 0xffff) as u16;
+        // don't stop less than 10 ms.
+        if duration < 10 {
+            self.delay_ms(duration);
+            unsafe { core::ptr::write_volatile(&mut TIME_UP, true) }
+        } else {
+            self.setup_rtc(duration);
+            self.do_stop();
+            // TODO: re-init clocks
+        }
+    }
 
-                (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().set_bit());
+    #[cfg(feature = "interrupt")]
+    pub fn standby_ms(&mut self, duration: u32) {
+        // stop specified ms. Max. 2^32ms = about 49 days.
 
-                while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
-                (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().set_bit());
-                // whitout seting PSCRH, PSC[19:16] will be set to 1.
-                (*RTC::ptr()).alrmh.write(|w| w.bits(wake_up_h));
-                (*RTC::ptr()).alrml.write(|w| w.bits(wake_up_l));
-                (*RTC::ptr()).ctlrl.modify(|_, w| w.cnf().clear_bit().alrf().clear_bit());
-                // Wait write completed
-                while !(*RTC::ptr()).ctlrl.read().rtoff().bit_is_set() {}
-
-                (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().clear_bit());
-
-                // enable interrupt and get into sleep mode
-                // EXTI17 routed to RTCALARM
-                (*EXTI::ptr()).intenr.modify(|_, w| w.mr17().set_bit());
-                // (*EXTI::ptr()).evenr.modify(|_, w| w.mr17().set_bit());
-                (*EXTI::ptr()).rtenr.modify(|_, w| w.tr17().set_bit());
-
-                (*PFIC::ptr()).ienr2.modify(|_, w|
-                    w.bits(0b1 << ((Interrupt::RTCALARM as u32) - 32))
-                );
-                // enable ALARM interrupt
-                (*RTC::ptr()).ctlrh.modify(|_, w| w.alrie().set_bit());
-                riscv::interrupt::enable();
-
-                (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().clear_bit());
-                (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit());
-                // (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit().wfitowfe().set_bit());
-                core::ptr::write_volatile(&mut TIME_UP, false);
-                while !core::ptr::read_volatile(&TIME_UP) {
-                    asm!("wfi");
-                }
-            }
+        // don't stop less than 10 ms.
+        if duration < 10 {
+            self.delay_ms(duration);
+            unsafe { core::ptr::write_volatile(&mut TIME_UP, true) }
+        } else {
+            self.setup_rtc(duration);
+            self.do_standby();
+            // trigger Power Rest and jump to 0x0000_0004
+            unreachable!();
         }
     }
 
