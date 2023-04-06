@@ -1,8 +1,7 @@
 use core::arch::asm;
-use riscv::register::mtvec;
+use riscv::register::{ mtvec, mcause };
 
 use ch32v1::ch32v103::__EXTERNAL_INTERRUPTS;
-use ch32v1::ch32v103::PFIC;
 
 // set interrupts vector
 #[no_mangle]
@@ -15,28 +14,28 @@ pub extern "C" fn _setup_interrupts() {
 
 #[no_mangle]
 fn _interrupt_dispatcher() {
+    // Refered https://github.com/rust-embedded/riscv-rt/blob/master/src/lib.rs
     unsafe {
-        let iactr1 = ((*PFIC::ptr()).iactr1.read().bits() as u32) & 0xffff_5000;
-        if iactr1 > 0 {
-            let mut bit_mask = 1 << 12;
-            for index in 12..32 {
-                if iactr1 & bit_mask > 0 {
-                    let handler = __EXTERNAL_INTERRUPTS[index]._handler;
-                    handler();
-                }
-                bit_mask = bit_mask << 1;
-            }
-        }
+        let cause = mcause::read();
 
-        let iactr2 = (*PFIC::ptr()).iactr2.read().bits() as u32;
-        if iactr2 > 0 {
-            let mut bit_mask = 1;
-            for index in 0..28 {
-                if iactr2 & bit_mask > 0 {
-                    let handler = __EXTERNAL_INTERRUPTS[index + 32]._handler;
-                    handler();
+        if cause.is_exception() {
+            loop {
+                continue;
+            }
+        } else {
+            if cause.code() < __EXTERNAL_INTERRUPTS.len() {
+                let h = &__EXTERNAL_INTERRUPTS[cause.code()];
+                if h._reserved == 0 {
+                    loop {
+                        continue;
+                    }
+                } else {
+                    (h._handler)();
                 }
-                bit_mask = bit_mask << 1;
+            } else {
+                loop {
+                    continue;
+                }
             }
         }
     }
