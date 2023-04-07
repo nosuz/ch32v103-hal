@@ -1,11 +1,6 @@
-#[cfg(feature = "interrupt")]
 use ch32v1::ch32v103::{ PWR, PFIC, RTC, EXTI };
-#[cfg(feature = "interrupt")]
-use ch32v1::ch32v103::interrupt::Interrupt;
-#[cfg(feature = "interrupt")]
 use core::arch::asm;
-#[cfg(feature = "interrupt")]
-use crate::interrupt;
+use ch32v_rt::{ Interrupt, interrupt };
 
 use embedded_hal::prelude::*;
 use embedded_hal::blocking::delay;
@@ -13,7 +8,6 @@ use embedded_hal::blocking::delay;
 // SysTick (STK) register strucure is not same as CH32V20x and CH32V30x
 use crate::rcc::*;
 
-#[cfg(feature = "interrupt")]
 static mut TIME_UP: bool = false;
 
 pub struct Delay {
@@ -71,7 +65,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     fn do_sleep(&self) {
         unsafe {
             (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().clear_bit());
@@ -84,7 +77,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     fn do_stop(&self) {
         unsafe {
             (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().clear_bit());
@@ -97,7 +89,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     fn do_standby(&self) {
         unsafe {
             (*PWR::ptr()).ctlr.modify(|_, w| w.pdds().set_bit());
@@ -107,7 +98,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     fn setup_rtc(&self, duration: u32) {
         unsafe {
             // what will happen if reading RTC_L just before overflowed to RTC_H
@@ -151,7 +141,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     pub fn sleep_ms(&mut self, duration: u32) {
         // sleep specified ms. Max. 2^32ms = about 49 days.
 
@@ -165,7 +154,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     pub fn stop_ms(&mut self, duration: u32) {
         // stop specified ms. Max. 2^32ms = about 49 days.
 
@@ -180,7 +168,6 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     pub fn standby_ms(&mut self, duration: u32) {
         // stop specified ms. Max. 2^32ms = about 49 days.
 
@@ -196,15 +183,12 @@ impl Delay {
         }
     }
 
-    #[cfg(feature = "interrupt")]
     pub fn sleep_sec(&mut self, duration: u32) {
         assert!(duration < 4_294_968); //(2 ^ (32 - 1)) / 1000
         self.sleep_ms(duration * 1000);
     }
 
-    #[cfg(feature = "interrupt")]
     interrupt!(RTCALARM, Self::rtc_handler);
-    #[cfg(feature = "interrupt")]
     fn rtc_handler() {
         unsafe {
             (*RTC::ptr()).ctlrl.modify(|_, w| w.alrf().clear_bit());

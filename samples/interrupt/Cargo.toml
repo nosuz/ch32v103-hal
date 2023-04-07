@@ -9,9 +9,13 @@ edition = "2021"
 # provide implementation for critical-section
 riscv = { version = "0.10.1", features = ["critical-section-single-hart"] }
 # riscv-rt = "0.11.0"
-ch32v103-rt = { version = "0.11.0", path = "../../../ch32v103-rt"}
 panic-halt = "0.2.0"
 critical-section = "1.1.1"
+
+[dependencies.ch32v-rt]
+# path = "../../../ch32v-rt"
+git = "https://github.com/nosuz/ch32v-rt.git"
+features = ["ch32v103"]
 
 [dependencies.ch32v1]
 # path = "../../../ch32-rs-nightlies/ch32v1"
@@ -26,7 +30,6 @@ features = [
 
 [dependencies.ch32v103_hal]
 path = "../.."
-features = ["interrupt"]
 
 [profile.release]
 # Minimize binary size.
