@@ -2,7 +2,7 @@
 #![no_main]
 
 // provide implementation for critical-section
-use riscv_rt::entry;
+use ch32v_rt::entry;
 use panic_halt as _;
 
 use ch32v1::ch32v103; // PAC for CH32V103

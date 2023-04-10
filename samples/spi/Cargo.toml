@@ -8,11 +8,14 @@ edition = "2021"
 [dependencies]
 # provide implementation for critical-section
 riscv = { version = "0.10.1", features = ["critical-section-single-hart"] }
-riscv-rt = "0.11.0"
 panic-halt = "0.2.0"
 nb = "1.0.0"
 # Required for bwrite_all
 # embedded-hal = "0.2.7"
+
+[dependencies.ch32v-rt]
+# path = "../../../ch32v-rt"
+git = "https://github.com/nosuz/ch32v-rt.git"
 
 [dependencies.ch32v1]
 # path = "../ch32-rs/ch32v1"

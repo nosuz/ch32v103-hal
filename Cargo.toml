@@ -23,3 +23,7 @@ features = ["ch32v103", "critical-section", "rt"]
 
 [features]
 default = []
+ch32v103 = []
+sleep = ["ch32v-rt/interrupt"]
+stop = ["ch32v-rt/interrupt"]
+standby = ["ch32v-rt/interrupt"]

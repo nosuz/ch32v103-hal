@@ -15,7 +15,7 @@ critical-section = "1.1.1"
 [dependencies.ch32v-rt]
 # path = "../../../ch32v-rt"
 git = "https://github.com/nosuz/ch32v-rt.git"
-features = ["ch32v103"]
+features = ["interrupt", "ch32v103"]
 
 [dependencies.ch32v1]
 # path = "../../../ch32-rs-nightlies/ch32v1"
@@ -30,6 +30,11 @@ features = [
 
 [dependencies.ch32v103_hal]
 path = "../.."
+features = [
+    "ch32v103",
+    "sleep",
+    "stop"
+]
 
 [profile.release]
 # Minimize binary size.

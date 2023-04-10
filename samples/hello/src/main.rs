@@ -2,7 +2,7 @@
 #![no_main]
 
 // provide implementation for critical-section
-use riscv_rt::entry;
+use ch32v_rt::entry;
 use panic_halt as _;
 
 // use core::fmt::Write; // required for writeln!

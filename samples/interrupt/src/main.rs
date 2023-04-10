@@ -5,20 +5,19 @@ use core::cell::RefCell;
 use critical_section::Mutex;
 
 // provide implementation for critical-section
-use ch32v103_rt::{ entry };
+use ch32v_rt::entry;
+use ch32v_rt::interrupt;
 use panic_halt as _;
 
 // use ch32v1::ch32v103; // PAC for CH32V103
 use ch32v1::ch32v103::Peripherals;
 use ch32v1::ch32v103::{ RCC, TIM1, PFIC };
 use ch32v1::ch32v103::interrupt::Interrupt;
-// use ch32v1::interrupt;
 
 use ch32v103_hal::prelude::*;
 use ch32v103_hal::rcc::*;
 use ch32v103_hal::gpio::*;
 use ch32v103_hal::delay::*;
-use ch32v103_hal::interrupt;
 use ch32v103_hal::gpio::gpiob::PB15;
 
 // use core::fmt::Write; // required for writeln!
