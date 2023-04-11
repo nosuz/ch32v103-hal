@@ -266,6 +266,8 @@ impl CFGR {
             None => {
                 // use default HSI
                 unsafe {
+                    CLK_CFG.use_hsi = true;
+                    CLK_CFG.source = Sysclk::Hsi;
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0));
                 }
                 self.sysclk = Some(HSI);
