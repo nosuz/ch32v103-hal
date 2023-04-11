@@ -52,14 +52,16 @@ pub struct CFGR {
     rtc_source: Option<Rtc>,
 }
 
-struct RccRegs {
-    ctlr: u32,
-    cfgr0: u32,
+struct ClockConfig {
+    use_hsi: bool,
+    use_hse: bool,
+    source: Sysclk,
 }
 
-static mut RCC_REGS: RccRegs = RccRegs {
-    ctlr: 0x0000_0083,
-    cfgr0: 0x0000_0000,
+static mut CLK_CFG: ClockConfig = ClockConfig {
+    use_hsi: false,
+    use_hse: false,
+    source: Sysclk::Hsi,
 };
 
 pub struct Clocks {
@@ -190,27 +192,36 @@ impl CFGR {
         match self.sysclk_source {
             Some(Sysclk::Hsi) => {
                 unsafe {
+                    CLK_CFG.use_hsi = true;
+                    CLK_CFG.source = Sysclk::Hsi;
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0));
                 }
                 self.sysclk = Some(HSI);
             }
             Some(Sysclk::Hse) => {
                 unsafe {
+                    CLK_CFG.use_hse = true;
+                    CLK_CFG.source = Sysclk::Hse;
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0b1));
                 }
                 self.sysclk = self.hse_freq;
             }
             Some(Sysclk::Pll) => {
+                unsafe {
+                    CLK_CFG.source = Sysclk::Pll;
+                }
                 let mut pll_base_freq = HSI;
                 match self.pll_source {
                     Some(PllClkSrc::Hsi) => {
                         unsafe {
+                            CLK_CFG.use_hsi = true;
                             (*RCC::ptr()).cfgr0.modify(|_, w| w.pllsrc().clear_bit());
                         }
                     }
                     Some(PllClkSrc::HsiDiv2) => {
                         pll_base_freq = HSI / 2;
                         unsafe {
+                            CLK_CFG.use_hsi = true;
                             (*EXTEND::ptr()).extend_ctr.modify(|_, w| w.hsipre().clear_bit());
                         }
                     }
@@ -218,6 +229,7 @@ impl CFGR {
                         assert!(self.hse_freq.is_some());
                         pll_base_freq = self.hse_freq.unwrap();
                         unsafe {
+                            CLK_CFG.use_hse = true;
                             (*RCC::ptr()).cfgr0.modify(|_, w|
                                 w.pllsrc().set_bit().pllxtpre().clear_bit()
                             );
@@ -227,6 +239,7 @@ impl CFGR {
                         assert!(self.hse_freq.is_some());
                         pll_base_freq = self.hse_freq.unwrap() / 2;
                         unsafe {
+                            CLK_CFG.use_hse = true;
                             (*RCC::ptr()).cfgr0.modify(|_, w|
                                 w.pllsrc().set_bit().pllxtpre().set_bit()
                             );
@@ -257,12 +270,6 @@ impl CFGR {
                 }
                 self.sysclk = Some(HSI);
             }
-        }
-
-        // save RCC config
-        unsafe {
-            RCC_REGS.ctlr = (*RCC::ptr()).ctlr.read().bits();
-            RCC_REGS.cfgr0 = (*RCC::ptr()).cfgr0.read().bits();
         }
 
         // Setup RTC clock
@@ -421,23 +428,27 @@ impl CFGR {
     pub fn restore_clock() {
         unsafe {
             // Restore HSE
-            if RCC_REGS.ctlr & 0x0001_0000 > 0 {
+            if CLK_CFG.use_hse {
                 // (*RCC::ptr()).ctlr.modify(|_, w| w.bits(RCC_REGS.ctlr & 0x0005_0000));
                 (*RCC::ptr()).ctlr.modify(|_, w| w.hseon().set_bit());
                 while !(*RCC::ptr()).ctlr.read().hserdy().bit_is_set() {}
             }
 
-            // Restore PLL
-            if RCC_REGS.ctlr & 0x0100_0000 > 0 {
-                (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
-                while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
-            }
-
             // Restore system clock source
-            (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits((RCC_REGS.cfgr0 & 0x0000_0003) as u8));
+            let sw_bits = match CLK_CFG.source {
+                Sysclk::Hsi => { 0b00 }
+                Sysclk::Hse => { 0b01 }
+                Sysclk::Pll => {
+                    // Restore PLL
+                    (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
+                    while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
+                    0b10
+                }
+            };
+            (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(sw_bits));
 
             // Restore HSI
-            if (RCC_REGS.ctlr & 0x0000_0001) == 0 {
+            if !CLK_CFG.use_hsi {
                 (*RCC::ptr()).ctlr.modify(|_, w| w.hsion().clear_bit());
             }
         }
