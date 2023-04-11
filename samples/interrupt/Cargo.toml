@@ -33,7 +33,8 @@ path = "../.."
 features = [
     "ch32v103",
     "sleep",
-    "stop"
+    "stop",
+    "standby"
 ]
 
 [profile.release]

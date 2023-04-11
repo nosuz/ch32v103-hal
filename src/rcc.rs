@@ -52,6 +52,16 @@ pub struct CFGR {
     rtc_source: Option<Rtc>,
 }
 
+struct RccRegs {
+    ctlr: u32,
+    cfgr0: u32,
+}
+
+static mut RCC_REGS: RccRegs = RccRegs {
+    ctlr: 0x0000_0083,
+    cfgr0: 0x0000_0000,
+};
+
 pub struct Clocks {
     sysclk: Hertz,
     hclk: Hertz,
@@ -249,6 +259,12 @@ impl CFGR {
             }
         }
 
+        // save RCC config
+        unsafe {
+            RCC_REGS.ctlr = (*RCC::ptr()).ctlr.read().bits();
+            RCC_REGS.cfgr0 = (*RCC::ptr()).cfgr0.read().bits();
+        }
+
         // Setup RTC clock
         unsafe {
             // supply clocks to th power interface module.
@@ -398,6 +414,32 @@ impl CFGR {
             pclk1: pclk1.hz(),
             pclk2: pclk2.hz(),
             rtc_clk: rtc_clk,
+        }
+    }
+
+    // static method
+    pub fn restore_clock() {
+        unsafe {
+            // Restore HSE
+            if RCC_REGS.ctlr & 0x0001_0000 > 0 {
+                // (*RCC::ptr()).ctlr.modify(|_, w| w.bits(RCC_REGS.ctlr & 0x0005_0000));
+                (*RCC::ptr()).ctlr.modify(|_, w| w.hseon().set_bit());
+                while !(*RCC::ptr()).ctlr.read().hserdy().bit_is_set() {}
+            }
+
+            // Restore PLL
+            if RCC_REGS.ctlr & 0x0100_0000 > 0 {
+                (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
+                while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
+            }
+
+            // Restore system clock source
+            (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits((RCC_REGS.cfgr0 & 0x0000_0003) as u8));
+
+            // Restore HSI
+            if (RCC_REGS.ctlr & 0x0000_0001) == 0 {
+                (*RCC::ptr()).ctlr.modify(|_, w| w.hsion().clear_bit());
+            }
         }
     }
 }

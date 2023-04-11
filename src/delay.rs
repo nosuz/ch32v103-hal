@@ -93,6 +93,8 @@ impl Delay {
             while !core::ptr::read_volatile(&TIME_UP) {
                 asm!("wfi");
             }
+            // resume clock source
+            CFGR::restore_clock();
         }
     }
 
@@ -104,6 +106,7 @@ impl Delay {
             // (*PFIC::ptr()).sctlr.modify(|_, w| w.sleepdeep().clear_bit().wfitowfe().set_bit());
             asm!("wfi");
         }
+        unreachable!();
     }
 
     #[cfg(any(feature = "sleep", feature = "stop", feature = "standby"))]

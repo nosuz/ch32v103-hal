@@ -68,14 +68,14 @@ fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
     let rcc = peripherals.RCC.constrain();
 
-    let clocks = rcc.cfgr.use_lsi().freeze();
+    // let clocks = rcc.cfgr.use_lsi().freeze();
     // 72MHz not worked for me
     // let clocks = rcc.cfgr.use_pll((64).mhz(), PllClkSrc::Hsi).use_lsi().freeze();
-    // let clocks = rcc.cfgr
-    //     .use_pll((48).mhz(), PllClkSrc::HsiDiv2)
-    //     .hclk((24).mhz())
-    //     .use_lsi()
-    //     .freeze();
+    let clocks = rcc.cfgr
+        .use_pll((48).mhz(), PllClkSrc::HsiDiv2)
+        .hclk((24).mhz())
+        .use_lsi()
+        .freeze();
 
     // let gpioa = peripherals.GPIOA.split();
 
@@ -111,7 +111,7 @@ fn main() -> ! {
         delay.stop_ms(1000);
         led1.toggle().unwrap();
     }
-    //  standby nad restart
+    //  standby and restart
     delay.standby_ms(3000);
     unreachable!();
 }
