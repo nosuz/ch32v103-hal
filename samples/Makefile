@@ -1,7 +1,10 @@
-all: blinky_dir hello_dir echo_dir spi_dir i2c_dir adc_dir input_status interrupt_dir
+all: blinky_dir blink_leds_dir hello_dir echo_dir spi_dir i2c_dir adc_dir input_status interrupt_dir
 
 blinky_dir:
 	$(MAKE) -C blinky
+
+blink_leds_dir:
+	$(MAKE) -C blink-leds
 
 hello_dir:
 	$(MAKE) -C hello
