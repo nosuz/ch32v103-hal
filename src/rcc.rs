@@ -55,13 +55,15 @@ pub struct CFGR {
 struct ClockConfig {
     use_hsi: bool,
     use_hse: bool,
-    source: Sysclk,
+    use_pll: bool,
+    sysclk: Sysclk,
 }
 
 static mut CLK_CFG: ClockConfig = ClockConfig {
     use_hsi: false,
     use_hse: false,
-    source: Sysclk::Hsi,
+    use_pll: false,
+    sysclk: Sysclk::Hsi,
 };
 
 pub struct Clocks {
@@ -193,7 +195,7 @@ impl CFGR {
             Some(Sysclk::Hsi) => {
                 unsafe {
                     CLK_CFG.use_hsi = true;
-                    CLK_CFG.source = Sysclk::Hsi;
+                    CLK_CFG.sysclk = Sysclk::Hsi;
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0));
                 }
                 self.sysclk = Some(HSI);
@@ -201,14 +203,15 @@ impl CFGR {
             Some(Sysclk::Hse) => {
                 unsafe {
                     CLK_CFG.use_hse = true;
-                    CLK_CFG.source = Sysclk::Hse;
+                    CLK_CFG.sysclk = Sysclk::Hse;
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0b1));
                 }
                 self.sysclk = self.hse_freq;
             }
             Some(Sysclk::Pll) => {
                 unsafe {
-                    CLK_CFG.source = Sysclk::Pll;
+                    CLK_CFG.use_pll = true;
+                    CLK_CFG.sysclk = Sysclk::Pll;
                 }
                 let mut pll_base_freq = HSI;
                 match self.pll_source {
@@ -254,23 +257,52 @@ impl CFGR {
                 // setup PLL
                 let pll_multi = self.pll_freq.unwrap() / pll_base_freq;
                 assert!(pll_multi > 1);
+                // USB must 48MHz
+                let pll_freq = pll_base_freq * pll_multi;
+                #[cfg(feature = "usbhd")]
+                assert!((pll_freq == 48_000_000) | (pll_freq == 72_000_000));
                 unsafe {
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.pllmul().bits((pll_multi as u8) - 2));
                     // (*RCC::ptr()).cfgr0.modify(|_, w| w.pllmul().bits(0b110));
                     (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
                     while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0b10));
+                    // For USBHD
+                    #[cfg(feature = "usbhd")]
+                    if pll_freq == 48_000_000 {
+                        (*RCC::ptr()).cfgr0.modify(|_, w| w.usbpre().set_bit());
+                    } else {
+                        (*RCC::ptr()).cfgr0.modify(|_, w| w.usbpre().clear_bit());
+                    }
                 }
-                self.sysclk = Some(pll_base_freq * pll_multi);
+                self.sysclk = Some(pll_freq);
             }
             None => {
                 // use default HSI
                 unsafe {
                     CLK_CFG.use_hsi = true;
-                    CLK_CFG.source = Sysclk::Hsi;
+                    CLK_CFG.sysclk = Sysclk::Hsi;
                     (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(0));
                 }
                 self.sysclk = Some(HSI);
+            }
+        }
+
+        // USBHD use PLL
+        #[cfg(feature = "usbhd")]
+        match self.sysclk_source {
+            Some(Sysclk::Pll) => {} // ignore; already finished
+            _ => {
+                unsafe {
+                    CLK_CFG.use_hsi = true;
+                    CLK_CFG.use_pll = true;
+                    // USB: 48MHz, HIS: 8MHz => PLL output = HSI x 6
+                    (*RCC::ptr()).cfgr0.modify(|_, w|
+                        w.pllsrc().clear_bit().pllmul().bits(0b100).usbpre().set_bit()
+                    );
+                    (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
+                    while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
+                }
             }
         }
 
@@ -436,16 +468,16 @@ impl CFGR {
                 while !(*RCC::ptr()).ctlr.read().hserdy().bit_is_set() {}
             }
 
+            if CLK_CFG.use_pll {
+                (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
+                while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
+            }
+
             // Restore system clock source
-            let sw_bits = match CLK_CFG.source {
+            let sw_bits = match CLK_CFG.sysclk {
                 Sysclk::Hsi => { 0b00 }
                 Sysclk::Hse => { 0b01 }
-                Sysclk::Pll => {
-                    // Restore PLL
-                    (*RCC::ptr()).ctlr.modify(|_, w| w.pllon().set_bit());
-                    while !(*RCC::ptr()).ctlr.read().pllrdy().bit_is_set() {}
-                    0b10
-                }
+                Sysclk::Pll => { 0b10 }
             };
             (*RCC::ptr()).cfgr0.modify(|_, w| w.sw().bits(sw_bits));
 
