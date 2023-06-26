@@ -12,6 +12,16 @@ The KEY pin is Pull-Uped and goes to L by pressing the User button.
 To download firmware, press RST button and release it.
 To run downloaded firmware, press RST and User buttons and release them.
 
+## Development tools
+
+```
+$ rustup target add riscv32imac-unknown-none-elf
+$ sudo apt install binutils-riscv64-unknown-elf
+$ cargo install wchisp
+$ sudo chow root:root $HOME/.cargo/bin/wchisp
+$ sudo chmod u+s $HOME/.cargo/bin/wchisp
+```
+
 ## Examples
 
 ```
