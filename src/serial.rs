@@ -79,6 +79,7 @@ impl RxPin<USART1> for PB7<Input<PullUp>> {
 pub struct Serial<USART, PINS> {
     usart: USART,
     pins: PINS,
+    base_freq: Hertz,
 }
 
 impl<TX, RX> Serial<USART1, (TX, RX)> {
@@ -115,7 +116,7 @@ impl<TX, RX> Serial<USART1, (TX, RX)> {
             (*USART1::ptr()).ctlr1.modify(|_, w| w.ue().set_bit().te().set_bit().re().set_bit());
         }
 
-        Serial { usart: usart, pins: pins }
+        Serial { usart: usart, pins: pins, base_freq: clocks.pclk2() }
     }
 
     /// Splits the `Serial` abstraction into a transmitter and a receiver half
@@ -128,6 +129,10 @@ impl<TX, RX> Serial<USART1, (TX, RX)> {
                 _usart: PhantomData,
             },
         )
+    }
+
+    pub fn get_base_freq(&self) -> Hertz {
+        self.base_freq
     }
 }
 
@@ -157,6 +162,12 @@ impl serial::Write<u8> for Tx<USART1> {
     }
 }
 
+impl Tx<USART1> {
+    pub fn is_ready(&self) -> bool {
+        unsafe { (*USART1::ptr()).statr.read().txe().bit_is_set() }
+    }
+}
+
 impl serial::Read<u8> for Rx<USART1> {
     type Error = UsartError;
 
@@ -182,6 +193,12 @@ impl serial::Read<u8> for Rx<USART1> {
                 )
             }
         }
+    }
+}
+
+impl Rx<USART1> {
+    pub fn is_empty(&self) -> bool {
+        unsafe { (*USART1::ptr()).statr.read().rxne().bit_is_clear() }
     }
 }
 
