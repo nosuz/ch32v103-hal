@@ -16,7 +16,8 @@ git = "https://github.com/nosuz/ch32v-rt.git"
 
 [dependencies.ch32v1]
 # path = "../ch32-rs-nightlies/ch32v1"
-git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
+#git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
+git = "https://github.com/nosuz/ch32-rs-nightlies.git"
 
 version = "0.1.6"
 features = ["ch32v103", "critical-section", "rt"]
