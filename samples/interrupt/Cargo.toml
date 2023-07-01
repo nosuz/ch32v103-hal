@@ -14,12 +14,13 @@ critical-section = "1.1.1"
 
 [dependencies.ch32v-rt]
 # path = "../../../ch32v-rt"
-git = "https://github.com/nosuz/ch32v-rt.git"
+git = "https://github.com/nosuz/ch32v-rt"
 features = ["interrupt", "ch32v103"]
 
 [dependencies.ch32v1]
 # path = "../../../ch32-rs-nightlies/ch32v1"
-git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
+# git = "https://github.com/ch32-rs/ch32-rs-nightlies"
+git = "https://github.com/nosuz/ch32-rs-nightlies"
 
 version = "0.1.6"
 features = [

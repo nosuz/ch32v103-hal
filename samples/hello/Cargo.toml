@@ -14,11 +14,12 @@ embedded-hal = "0.2.7"
 
 [dependencies.ch32v-rt]
 # path = "../../../ch32v-rt"
-git = "https://github.com/nosuz/ch32v-rt.git"
+git = "https://github.com/nosuz/ch32v-rt"
 
 [dependencies.ch32v1]
 # path = "../ch32-rs/ch32v1"
-git = "https://github.com/ch32-rs/ch32-rs-nightlies.git"
+# git = "https://github.com/ch32-rs/ch32-rs-nightlies"
+git = "https://github.com/nosuz/ch32-rs-nightlies"
 
 version = "0.1.6"
 features = [
