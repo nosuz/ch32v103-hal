@@ -22,6 +22,14 @@ $ sudo chow root:root $HOME/.cargo/bin/wchisp
 $ sudo chmod u+s $HOME/.cargo/bin/wchisp
 ```
 
+Clear Cargo cache
+
+```
+$ cargo install cargo-cache
+$ #cargo cache -a
+$ cargo cache -r all
+```
+
 ## Examples
 
 ```
