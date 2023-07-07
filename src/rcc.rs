@@ -308,8 +308,8 @@ impl CFGR {
 
         // Setup RTC clock
         unsafe {
-            // supply clocks to th power interface module.
-            (*RCC::ptr()).apb1pcenr.modify(|_, w| w.pwren().set_bit());
+            // supply clocks to the ppower and backup interface modules.
+            (*RCC::ptr()).apb1pcenr.modify(|_, w| w.pwren().set_bit().bkpen().set_bit());
             // enable editing backup area
             (*PWR::ptr()).ctlr.modify(|_, w| w.dbp().set_bit());
         }
