@@ -218,6 +218,9 @@ impl CFGR {
                     Some(PllClkSrc::Hsi) => {
                         unsafe {
                             CLK_CFG.use_hsi = true;
+                            // use HSI/2 as Pll clock source. Reset only on power reset
+                            (*EXTEND::ptr()).extend_ctr.modify(|_, w| w.hsipre().set_bit());
+                            // use HIS or HSI/2 as Pll clock source
                             (*RCC::ptr()).cfgr0.modify(|_, w| w.pllsrc().clear_bit());
                         }
                     }
@@ -225,7 +228,10 @@ impl CFGR {
                         pll_base_freq = HSI / 2;
                         unsafe {
                             CLK_CFG.use_hsi = true;
+                            // use HSI/2 as Pll clock source. Reset only on power reset
                             (*EXTEND::ptr()).extend_ctr.modify(|_, w| w.hsipre().clear_bit());
+                            // use HIS or HSI/2 as Pll clock source
+                            (*RCC::ptr()).cfgr0.modify(|_, w| w.pllsrc().clear_bit());
                         }
                     }
                     Some(PllClkSrc::Hse) => {
