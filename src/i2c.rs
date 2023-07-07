@@ -24,8 +24,8 @@ pub enum I2cError {
 }
 
 pub enum I2cMode {
-    Standard,
-    Fast,
+    Standard, // 100kHz
+    Fast, // 400kHz
 }
 
 pub trait SclPin<I2C> {
