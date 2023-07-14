@@ -185,9 +185,14 @@ impl Delay {
     #[cfg(feature = "standby")]
     pub fn standby_ms(&mut self, duration: u32) {
         // stop specified ms. Max. 2^32ms = about 49 days.
+        // if 0, never auto wake-up.
 
-        // don't stop less than 10 ms.
-        if duration < 10 {
+        if duration == 0 {
+            self.do_standby();
+            // trigger Power Rest and jump to 0x0000_0004
+            unreachable!();
+        } else if duration < 10 {
+            // don't stop less than 10 ms.
             self.delay_ms(duration);
             unsafe { core::ptr::write_volatile(&mut TIME_UP, true) }
         } else {
